@@ -1,0 +1,35 @@
+{
+  "name": "@mothepro/signaling-lobby",
+  "description": "A",
+  "author": "Maurice Prosper",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "main": "dist/npm/index.js",
+  "bin": "dist/npm/index.js",
+  "sideEffects": false,
+  "type": "module",
+  "module": "dist/esm/index.js",
+  "files": [
+    "dist"
+  ],
+  "repository": "https://github.com/mothepro/signaling-lobby",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "mocha -r should -r should-sinon dist/test/*.js",
+    "prerelease": "npm run build",
+    "release": "np"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.14",
+    "@types/yargs": "^13.0.3",
+    "np": "^5.1.3",
+    "typescript": "^3.7.2"
+  },
+  "dependencies": {
+    "yargs": "^15.0.2"
+  }
+}

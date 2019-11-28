@@ -13,6 +13,7 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "experimentalDecorators": true,
+    "downlevelIteration": true,
     "lib": [
       "es2019",
       null

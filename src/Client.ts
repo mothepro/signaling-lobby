@@ -39,9 +39,6 @@ export default class {
   /** Current state of connection. */
   private state = State.CONNECTING
 
-  /** Buffer that represents me as a client. */
-  buffer?: ArrayBuffer
-
   /** Name given by the client. */
   name?: Name
 
@@ -64,13 +61,17 @@ export default class {
     private readonly log: Function,
   ) {
     this.id = id & 0xFFFF // it must the size of a ClientID
-    this.socket.on('open', this.opened)
-    this.socket.on('close', this.closed)
-    this.socket.on('error', this.failure)
-    this.socket.on('message', this.messageReceived)
+    socket.on('open', this.opened)
+    socket.on('close', this.closed)
+    socket.on('error', this.failure)
+    socket.on('message', this.messageReceived)
+
+    // Already opened
+    if (socket.readyState == socket.OPEN)
+      this.opened()
 
     // Set timer if state doesn't change
-    this.timeout = setTimeout(this.socket.close, idleTimeout) 
+    this.timeout = setTimeout(() => this.socket.close(), idleTimeout) 
     this.bindStateChange(idleTimeout)
   }
 
@@ -97,16 +98,16 @@ export default class {
 
   private opened = () =>
     this.stateChange.activate(State.CONNECTED)
-    && this.log('Opened a connection')
+    && this.log('Opened a connection with', this.id)
 
-  private closed = () => {
-    this.stateChange.activate(State.DEAD)
-    this.log('Closed a connection')
-  }
+  private closed = () =>
+    this.state != State.DEAD // if hasn't been closed already
+    && this.stateChange.activate(State.DEAD)
+    && this.log('Closed a connection with', this.id)
 
   private failure = (err: Error) => {
+    this.log('An error occurred with a connection', this.id, err)
     this.socket.terminate()
-    this.log('An error occurred with a connection to a client', err)
     this.closed()
   }
 
@@ -119,15 +120,15 @@ export default class {
           const { name, lobby } = getIntro(data)
           this.name = name.substr(0, this.maxNameLength)
           this.lobby = lobby
-          this.buffer = clientToBuffer(this)
           this.stateChange.activate(State.LOBBY_READY).activate(State.WAITING)
-          this.log('Connection established with', name)
-          break
+          this.log('Connection with', this.id, 'established in lobby', this.lobby, 'as', this.name)
+          return
 
         // ID of the peer we want to include in the group
         case State.WAITING:
         case State.GROUPED:
           this.message.activate(getId(data))
+          return
       }
       throw Error(`While in State ${this.state}, received an unexpected message ${data}`)
     } catch (err) {

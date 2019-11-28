@@ -11,7 +11,6 @@ const {
   'max-payload': maxPayload,
   'idle-timeout': idleTimeout,
 } = strict()
-  .demandCommand()
   .version(version)
   .help()
   .usage(`${thisPkgDescription}
@@ -53,6 +52,9 @@ const {
     alias: 'p',
     type: 'number',
     description: 'The port to host this server on',
+    defaultDescription: 'A random free port',
+    default: 0,
+    demandOption: true,
   })
     .argv
 

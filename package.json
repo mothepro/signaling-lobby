@@ -21,7 +21,9 @@
     "pretest": "npm run build",
     "test": "mocha -r should -r should-sinon dist/test/*.js",
     "prerelease": "npm run build",
-    "release": "np"
+    "release": "np",
+    "prestart": "npm run build",
+    "start": "node ./dist/npm/index.js -v"
   },
   "devDependencies": {
     "@types/node": "^12.12.14",

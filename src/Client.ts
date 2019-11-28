@@ -63,6 +63,7 @@ export default class {
     private readonly nameSantizer: (name: unknown) => Name,
     private readonly log: Function,
   ) {
+    this.id = id & 0xFFFF // it must the size of a ClientID
     this.socket.on('open', this.opened)
     this.socket.on('close', this.closed)
     this.socket.on('error', this.failure)
@@ -70,10 +71,14 @@ export default class {
 
     // Set timer if state doesn't change
     this.timeout = setTimeout(this.socket.close, groupTimeout) 
-    this.initTimer(groupTimeout)
+    this.bindStateChange(groupTimeout)
   }
 
-  private async initTimer(ms: number) {
+  send = async (data: ArrayBuffer) =>
+    new Promise(resolve => this.socket.send(data, {}, resolve))
+
+  // Since this can't be in the constructor
+  private async bindStateChange(ms: number) {
     for await (const newState of this.stateChange)
       switch (this.state = newState) {
         // We can stop the timer now

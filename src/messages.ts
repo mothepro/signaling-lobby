@@ -9,29 +9,25 @@ export type LobbyID = number
 /** Uint16 (2 bytes) to represent the ID of a client. */
 export type ClientID = number
 
-const decode = new TextDecoder().decode
-
-const encode = new TextEncoder().encode
-
 export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
-  if (input instanceof ArrayBuffer)
+  if (input instanceof Buffer) // Array buffers are converted :(
     return {
-      lobby: new Uint32Array(input, 0, 1)[0],
-      name: stringSantizer(decode(input.slice(4))),
+      lobby: input.readInt32LE(0),
+      name: stringSantizer(input.toString('utf-8', 4)),
     }
-  throw TypeError(`Expected Introduction but  got ${input}`)
+  console.log(input, typeof input, input instanceof ArrayBuffer)
+  throw TypeError(`Expected Introduction but got '${input}'`)
 }
 
 export function getId(input: Data): ClientID {
   if (input instanceof ArrayBuffer && input.byteLength == 2)
     return new Uint16Array(input)[0]
-  throw TypeError(`Expected ID but got ${input}`)
+  throw TypeError(`Expected ID but got '${input}'`)
 }
 
-export function clientToBuffer(client: Client): ArrayBuffer {
-  const { id, name } = client,
-    ret = new Uint16Array(2 + Buffer.byteLength(name!, 'utf-8'))
-  ret.set([id])
-  ret.set(encode(name), 1)
-  return ret.buffer
+export function clientToBuffer(client: Client): Buffer {
+  const ret = Buffer.allocUnsafe(2 + client.name!.length)
+  ret.writeInt16LE(client.id!, 0)
+  ret.write(client.name!, 2)
+  return ret
 }

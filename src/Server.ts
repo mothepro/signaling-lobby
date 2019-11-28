@@ -21,8 +21,9 @@ export default class {
 
   constructor(
     private readonly log: Function,
-    port: number | undefined,
+    port: number,
     maxPayload: number,
+    // TODO unused
     private readonly maxConnections: number,
     private readonly maxNameLength: number,
     private readonly idleTimout: number,
@@ -47,14 +48,15 @@ export default class {
   private onConnection = async (socket: WebSocket) => {
     const client = new Client(nextID++, socket, this.maxNameLength, this.idleTimout, this.log)
     this.pendingClients.add(client)
-
     for await (const state of client.stateChange)
       switch (state) {
         case State.DEAD:
           this.pendingClients.delete(client)
+          break
 
         case State.LOBBY_READY:
           this.getLobby(client.lobby!).addClient(client)
+          break
       }
   }
 

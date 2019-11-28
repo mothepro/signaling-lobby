@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 import { strict } from 'yargs'
 import { version, name as thisPkgName, description as thisPkgDescription } from './package.json'
+import Server from './src/Server'
 
 const {
   verbose,
-  'clean-name': cleanName,
+  port,
   'max-length': maxLength,
+  'max-connections': maxConnections,
+  'max-payload': maxPayload,
+  'idle-timeout': idleTimeout,
 } = strict()
   .demandCommand()
   .version(version)
@@ -18,18 +22,31 @@ const {
     default: false,
     type: 'boolean',
   })
-  .option('clean-name', {
-    alias: 'c',
-    type: 'boolean',
-    description: 'Whether to fix the names given from users (Trim, remove zero width chars)',
-    default: true,
-    demandOption: true,
-  })
   .option('max-length', {
-    alias: 'l',
     type: 'number',
     description: 'The max length of a user\'s name',
     default: 15,
+    demandOption: true,
+  })
+  .option('max-connections', {
+    type: 'number',
+    description: 'The max number of connections the server supports',
+    default: 2 ** 16 - 2,
+    demandOption: true,
+  })
+  .option('max-payload', {
+    type: 'number',
+    description: 'The max length of a user\'s message',
+    defaultDescription: 'A kilobyte',
+    default: 2 ** 10,
+    demandOption: true,
+  })
+  .option('idle-timeout', {
+    alias: 'i',
+    type: 'number',
+    description: 'The number of milliseconds a client can be connected to the server without joining a group',
+    defaultDescription: '20 minutes',
+    default: 20 * 60 * 1000,
     demandOption: true,
   })
   .option('port', {
@@ -38,3 +55,5 @@ const {
     description: 'The port to host this server on',
   })
     .argv
+
+new Server(verbose ? console.log : () => { }, port, maxPayload, maxConnections, maxLength, idleTimeout)

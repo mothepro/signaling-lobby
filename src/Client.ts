@@ -19,7 +19,7 @@ export const enum State {
   /** 
    * A Client is in a group with at least another client.
    * 
-   * If they have not reached this state by `groupTimeout`
+   * If they have not reached this state by `idleTimeout`
    * than the connection will be closed and they will be
    * removed from the server.
    */
@@ -58,9 +58,9 @@ export default class {
     /** An ID that is unique to this client. */
     readonly id: number,
     private readonly socket: WebSocket,
+    private readonly maxNameLength: number,
     /** ms to wait before to kill this client if they are not grouped. */
-    groupTimeout: number,
-    private readonly nameSantizer: (name: unknown) => Name,
+    idleTimeout: number,
     private readonly log: Function,
   ) {
     this.id = id & 0xFFFF // it must the size of a ClientID
@@ -70,8 +70,8 @@ export default class {
     this.socket.on('message', this.messageReceived)
 
     // Set timer if state doesn't change
-    this.timeout = setTimeout(this.socket.close, groupTimeout) 
-    this.bindStateChange(groupTimeout)
+    this.timeout = setTimeout(this.socket.close, idleTimeout) 
+    this.bindStateChange(idleTimeout)
   }
 
   send = async (data: ArrayBuffer) =>
@@ -117,7 +117,7 @@ export default class {
         case State.CONNECTING: // That's weird
         case State.CONNECTED:
           const { name, lobby } = getIntro(data)
-          this.name = this.nameSantizer(name)
+          this.name = name.substr(0, this.maxNameLength)
           this.lobby = lobby
           this.buffer = clientToBuffer(this)
           this.stateChange.activate(State.LOBBY_READY).activate(State.WAITING)

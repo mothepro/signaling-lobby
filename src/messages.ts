@@ -1,6 +1,7 @@
 import { Data } from 'ws'
 import { TextDecoder, TextEncoder } from 'util'
 import Client from './Client'
+import stringSantizer from './stringSantizer'
 
 export type Name = string
 /** Uint32 (4 bytes) to represent the ID of a lobby. */
@@ -12,11 +13,11 @@ const decode = new TextDecoder().decode
 
 const encode = new TextEncoder().encode
 
-export function getIntro(input: Data): { name: string, lobby: number } {
+export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
   if (input instanceof ArrayBuffer)
     return {
       lobby: new Uint32Array(input, 0, 1)[0],
-      name: decode(input.slice(4)),
+      name: stringSantizer(decode(input.slice(4))),
     }
   throw TypeError(`Expected Introduction but  got ${input}`)
 }

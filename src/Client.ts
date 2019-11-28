@@ -61,6 +61,7 @@ export default class {
     private readonly log: Function,
   ) {
     this.id = id & 0xFFFF // it must the size of a ClientID
+    socket.binaryType = 'arraybuffer'
     socket.on('open', this.opened)
     socket.on('close', this.closed)
     socket.on('error', this.failure)

@@ -15,7 +15,6 @@ export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
       lobby: input.readInt32LE(0),
       name: stringSantizer(input.toString('utf-8', 4)),
     }
-  console.log(input, typeof input, input instanceof ArrayBuffer)
   throw TypeError(`Expected Introduction but got '${input}'`)
 }
 

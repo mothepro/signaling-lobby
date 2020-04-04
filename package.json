@@ -26,15 +26,15 @@
     "start": "node ./dist/npm/index.js -v"
   },
   "devDependencies": {
-    "@types/node": "^12.12.14",
-    "@types/ws": "^6.0.4",
-    "@types/yargs": "^13.0.3",
-    "np": "^5.1.3",
-    "typescript": "^3.7.2"
+    "@types/node": "^13.11.0",
+    "@types/ws": "^7.2.3",
+    "@types/yargs": "^15.0.4",
+    "np": "^6.2.0",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
-    "fancy-emitter": "^1.1.1",
-    "ws": "^7.2.0",
-    "yargs": "^15.0.2"
+    "fancy-emitter": "^1.3.2",
+    "ws": "^7.2.3",
+    "yargs": "^15.3.1"
   }
 }

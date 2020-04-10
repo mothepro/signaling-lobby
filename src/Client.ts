@@ -1,29 +1,18 @@
 
 import * as WebSocket from 'ws'
 import { SafeEmitter } from 'fancy-emitter'
-import { getIntro, getId, Name, LobbyID, ClientID, clientToBuffer } from './messages'
+import { getIntro, getId, Name, LobbyID, ClientID, clientToBuffer } from './util/messages'
+import logger, { Level } from './util/logger'
 
 export const enum State {
   /** A Client that has just initiated a connection. */
-  CONNECTING,
+  ONLINE,
 
   /** A Client that has just connected and we can communicate with them. */
   CONNECTED,
 
   /** A Client ready in the lobby with a name assigned. */
-  LOBBY_READY,
-
-  /** A Client waiting in the lobby with a name assigned. */
-  WAITING,
-
-  /** 
-   * A Client is in a group with at least another client.
-   * 
-   * If they have not reached this state by `idleTimeout`
-   * than the connection will be closed and they will be
-   * removed from the server.
-   */
-  GROUPED,
+  IDLE,
 
   /**
    * The underlying socket is either closing or closed.
@@ -34,10 +23,10 @@ export const enum State {
 
 export default class {
   /** Handle to kill this client after timeout. */
-  private timeout: NodeJS.Timeout
+  private timeout: NodeJS.Timeout = setTimeout(() => this.socket.close(), this.idleTimeout)
 
   /** Current state of connection. */
-  private state = State.CONNECTING
+  private state = State.ONLINE
 
   /** Name given by the client. */
   name?: Name
@@ -46,10 +35,45 @@ export default class {
   lobby?: LobbyID
 
   /** Activated when changing state. */
-  readonly stateChange: SafeEmitter<State> = new SafeEmitter
+  readonly stateChange: SafeEmitter<State> = new SafeEmitter(
+    newState => logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState),
+    newState => {
+      if (newState != this.state)
+        switch (this.state = newState) {
+          case State.CONNECTED:
+            logger(Level.INFO, this.id, '> opened a connection')
+            break
 
-  /** Activated when client wants another client in their group. */
-  readonly message: SafeEmitter<ClientID> = new SafeEmitter
+          // We can stop the timer now
+          case State.DEAD:
+            logger(Level.INFO, this.id, '> closed a connection')
+            clearTimeout(this.timeout)
+            delete this.timeout
+            break
+
+          case State.IDLE:
+            logger(Level.INFO, this.id, '> joined lobby', this.lobby, 'as', this.name)
+            break
+        }
+      else
+        logger(Level.SEVERE, this.id, '> state activated but stayed as', this.state)
+    })
+
+  /** Activated when the client talks to the server. */
+  readonly message: SafeEmitter<WebSocket.Data> = new SafeEmitter(
+    data => logger(Level.DEBUG, this.id, '> sent', data),
+    data => {
+      if (this.state == State.CONNECTED)
+        try {
+          // An introduction from the client
+          const { name, lobby } = getIntro(data)
+          this.name = name.substr(0, this.maxNameLength)
+          this.lobby = lobby
+          this.stateChange.activate(State.IDLE)
+        } catch (err) {
+          this.failure(err)
+        }
+    })
 
   constructor(
     /** An ID that is unique to this client. */
@@ -57,82 +81,23 @@ export default class {
     private readonly socket: WebSocket,
     private readonly maxNameLength: number,
     /** ms to wait before to kill this client if they are not grouped. */
-    idleTimeout: number,
-    private readonly log: Function,
+    private readonly idleTimeout: number,
   ) {
-    this.id = id & 0xFFFF // it must the size of a ClientID
-    socket.on('open', this.opened)
-    socket.on('close', this.closed)
+    socket.on('open', () => this.stateChange.activate(State.CONNECTED))
+    socket.on('close', () => this.stateChange.activate(State.DEAD))
     socket.on('error', this.failure)
-    socket.on('message', this.messageReceived)
+    socket.on('message', this.message.activate)
 
     // Already opened
     if (socket.readyState == socket.OPEN)
-      this.opened()
-
-    // Set timer if state doesn't change
-    this.timeout = setTimeout(() => this.socket.close(), idleTimeout) 
-    this.bindStateChange(idleTimeout)
+      this.stateChange.activate(State.CONNECTED)
   }
 
-  send = async (data: ArrayBuffer) =>
+  send = async (data: WebSocket.Data) =>
     new Promise(resolve => this.socket.send(data, {}, resolve))
 
-  // Since this can't be in the constructor
-  private async bindStateChange(ms: number) {
-    for await (const newState of this.stateChange)
-      switch (this.state = newState) {
-        // We can stop the timer now
-        case State.GROUPED:
-        case State.DEAD:
-          if (this.timeout)
-            clearTimeout(this.timeout)
-          break
-
-        // Set the timer if it isn't set already.
-        default:
-          if (!this.timeout)
-            this.timeout = setTimeout(() => this.socket.close(), ms)
-      }
-  }
-
-  private opened = () =>
-    this.stateChange.activate(State.CONNECTED)
-    && this.log('Opened a connection with', this.id)
-
-  private closed = () =>
-    this.state != State.DEAD // if hasn't been closed already
+  private failure = (err: Error) =>
+    logger(Level.SEVERE, 'An error occurred with connection', this.id, err)
     && this.stateChange.activate(State.DEAD)
-    && this.log('Closed a connection with', this.id)
-
-  private failure = (err: Error) => {
-    this.log('An error occurred with a connection', this.id, err)
-    this.socket.terminate()
-    this.closed()
-  }
-
-  private messageReceived = (data: WebSocket.Data) => {
-    try {
-      switch (this.state) {
-        // An introduction from the client
-        case State.CONNECTING: // That's weird
-        case State.CONNECTED:
-          const { name, lobby } = getIntro(data)
-          this.name = name.substr(0, this.maxNameLength)
-          this.lobby = lobby
-          this.stateChange.activate(State.LOBBY_READY).activate(State.WAITING)
-          this.log('Connection with', this.id, 'established in lobby', this.lobby, 'as', this.name)
-          return
-
-        // ID of the peer we want to include in the group
-        case State.WAITING:
-        case State.GROUPED:
-          this.message.activate(getId(data))
-          return
-      }
-      throw Error(`While in State ${this.state}, received an unexpected message ${data}`)
-    } catch (err) {
-      this.failure(err)
-    }
-  }
+    && this.socket.terminate()
 }

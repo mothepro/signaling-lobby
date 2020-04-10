@@ -27,19 +27,19 @@ export default function (
     host = new WebSocket.Server({ port, backlog, maxPayload, clientTracking: false, perMessageDeflate: false })
 
   host.on('listening', () => logger(Level.SEVERE, 'Signaling server initiated', host.address()))
-  host.on('error', (err: Error) => logger(Level.SEVERE, 'An error occurred with the signaling server', err) && host.close())
-  host.on('close', () => logger(Level.SEVERE, 'Shutting down the signaling server'))
+  host.on('close',     () => logger(Level.SEVERE, 'Shutting down the signaling server'))
+  host.on('error',    err => logger(Level.SEVERE, 'An error occurred with the signaling server', err) && host.close())
   host.on('connection', async (socket: WebSocket) => {
     const client = new Client(ids.next().value, socket, maxNameLength, idleTimout)
 
     for await (const state of client.stateChange)
       switch (state) {
-        case State.CONNECTING:
+        case State.CONNECTED:
           pendingClients.add(client)
           break
 
         // Prepares a lobby of a specific ID and adds client to it
-        case State.LOBBY_READY:
+        case State.IDLE:
           if (!lobbies.has(client.lobby!))
             lobbies.set(client.lobby!, new Lobby)
           lobbies.get(client.lobby!)!.addClient(client)

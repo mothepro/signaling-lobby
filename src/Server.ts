@@ -1,12 +1,10 @@
 
 import * as WebSocket from 'ws'
-import { ClientID, LobbyID } from './util/messages'
+import { LobbyID } from './util/messages'
 import Client, { State } from './Client'
 import Lobby from './Lobby'
 import openId from './util/openId'
-
-// The next client ID to assign to a peer
-let nextID: ClientID = 1
+import logger, { Level } from './util/logger'
 
 // TODO add DoS prevention use
 // potenetially using 'headers' event and & shouldHandle method
@@ -22,10 +20,8 @@ export default class {
   private readonly ids = openId(this.maxConnections)
 
   constructor(
-    private readonly log: Function,
     port: number,
     maxPayload: number,
-    // TODO unused
     private readonly maxConnections: number,
     private readonly maxNameLength: number,
     private readonly idleTimout: number,
@@ -39,25 +35,25 @@ export default class {
     this.host.on('connection', this.onConnection)
   }
 
-  private onStart = () => this.log('Signaling server initiated on', this.host.address())
-  private onClose = () => this.log('Shutting down the signaling server.')
+  private onStart = () => logger(Level.SEVERE, 'Signaling server initiated on', this.host.address())
+  private onClose = () => logger(Level.SEVERE, 'Shutting down the signaling server.')
   private onError = (err: Error) => {
-    this.log('An error occurred with the signaling server', err)
+    logger(Level.SEVERE, 'An error occurred with the signaling server', err)
     this.host.close()
   }
 
   /** A new client has connected. */
   private onConnection = async (socket: WebSocket) => {
-    const client = new Client(this.ids.next().value, socket, this.maxNameLength, this.idleTimout, this.log)
+    const client = new Client(this.ids.next().value, socket, this.maxNameLength, this.idleTimout)
     this.pendingClients.add(client)
     for await (const state of client.stateChange)
       switch (state) {
-        case State.DEAD:
-          this.pendingClients.delete(client)
-          break
-
         case State.LOBBY_READY:
           this.getLobby(client.lobby!).addClient(client)
+          // fall-thru
+
+        case State.DEAD:
+          this.pendingClients.delete(client)
           break
       }
   }

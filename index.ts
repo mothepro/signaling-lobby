@@ -2,6 +2,7 @@
 import { strict } from 'yargs'
 import { version, name as thisPkgName, description as thisPkgDescription } from './package.json'
 import Server from './src/Server'
+import { setLevel } from './src/util/logger'
 
 const {
   verbose,
@@ -15,12 +16,8 @@ const {
   .help()
   .usage(`${thisPkgDescription}
   Usage: ${thisPkgName} [options]`)
-  .option('verbose', {
-    alias: 'v',
-    description: 'Whether to output status of server',
-    default: false,
-    type: 'boolean',
-  })
+  .count('verbose')
+  .alias('v', 'verbose')
   .option('max-length', {
     type: 'number',
     description: 'The max length of a user\'s name',
@@ -58,4 +55,5 @@ const {
   })
     .argv
 
-new Server(verbose ? console.log : () => { }, port, maxPayload, maxConnections, maxLength, idleTimeout)
+setLevel(verbose)
+new Server(port, maxPayload, maxConnections, maxLength, idleTimeout)

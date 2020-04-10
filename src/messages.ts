@@ -10,6 +10,8 @@ export type LobbyID = number
 export type ClientID = number
 
 export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
+  if (typeof input == 'string')
+    return JSON.parse(input)
   if (input instanceof Buffer) // Array buffers are converted :(
     return {
       lobby: input.readInt32LE(0),
@@ -19,6 +21,8 @@ export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
 }
 
 export function getId(input: Data): ClientID {
+  if (typeof input == 'string')
+    return JSON.parse(input)
   if (input instanceof ArrayBuffer && input.byteLength == 2)
     return new Uint16Array(input)[0]
   throw TypeError(`Expected ID but got '${input}'`)

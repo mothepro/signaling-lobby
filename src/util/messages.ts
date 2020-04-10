@@ -1,6 +1,5 @@
 import { Data } from 'ws'
-import { TextDecoder, TextEncoder } from 'util'
-import Client from './Client'
+import Client from '../Client'
 import stringSantizer from './stringSantizer'
 
 export type Name = string
@@ -10,8 +9,12 @@ export type LobbyID = number
 export type ClientID = number
 
 export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
-  if (typeof input == 'string')
-    return JSON.parse(input)
+  if (typeof input == 'string') {
+    let { lobby, name } = JSON.parse(input)
+    lobby = parseInt(lobby)
+    name = stringSantizer(name)
+    return { lobby, name }
+  }
   if (input instanceof Buffer) // Array buffers are converted :(
     return {
       lobby: input.readInt32LE(0),

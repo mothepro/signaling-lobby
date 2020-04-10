@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { strict } from 'yargs'
 import { version, name as thisPkgName, description as thisPkgDescription } from './package.json'
-import Server from './src/Server'
+import createServer from './src/createServer'
 import { setLevel } from './src/util/logger'
 
 const {
@@ -56,4 +56,4 @@ const {
     .argv
 
 setLevel(verbose)
-new Server(port, maxPayload, maxConnections, maxLength, idleTimeout)
+createServer(port, maxPayload, maxConnections, maxLength, idleTimeout)

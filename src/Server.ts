@@ -1,9 +1,9 @@
 
 import * as WebSocket from 'ws'
-import stringSantizer from './stringSantizer'
-import { ClientID, LobbyID } from './messages'
+import { ClientID, LobbyID } from './util/messages'
 import Client, { State } from './Client'
 import Lobby from './Lobby'
+import openId from './util/openId'
 
 // The next client ID to assign to a peer
 let nextID: ClientID = 1
@@ -18,6 +18,8 @@ export default class {
   private readonly lobbies: Map<LobbyID, Lobby> = new Map
 
   private readonly host: WebSocket.Server
+
+  private readonly ids = openId(this.maxConnections)
 
   constructor(
     private readonly log: Function,
@@ -46,7 +48,7 @@ export default class {
 
   /** A new client has connected. */
   private onConnection = async (socket: WebSocket) => {
-    const client = new Client(nextID++, socket, this.maxNameLength, this.idleTimout, this.log)
+    const client = new Client(this.ids.next().value, socket, this.maxNameLength, this.idleTimout, this.log)
     this.pendingClients.add(client)
     for await (const state of client.stateChange)
       switch (state) {

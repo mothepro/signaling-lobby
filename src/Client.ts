@@ -1,18 +1,34 @@
 
 import * as WebSocket from 'ws'
 import { SafeEmitter } from 'fancy-emitter'
-import { getIntro, getId, Name, LobbyID, ClientID, clientToBuffer } from './util/messages'
+import { getIntro, Name, LobbyID } from './util/messages'
 import logger, { Level } from './util/logger'
+import PausableTimeout from './util/pausableTimeout'
 
 export const enum State {
-  /** A Client that has just initiated a connection. */
+  /** Client that has just successfully initiated a connection. */
   ONLINE,
 
-  /** A Client that has just connected and we can communicate with them. */
+  /**
+   * Client that has just connected and we can communicate with them.
+   * Should only send an `Intro`.
+   */
   CONNECTED,
 
-  /** A Client ready in the lobby with a name assigned. */
-  IDLE,
+  /**
+   * Client is in the lobby with a name assigned.
+   * Should only send a `Proposal` as start group / confirmation or a `Reject`.
+   */
+  IN_LOBBY,
+
+  /** Client is proposed a group and waiting for responses. */
+  AWAITING_RESPONSE,
+
+  /**
+   * Group established.
+   * Should only send a `offer` & `answer` to sync SDPs.
+   */
+  SYNCING,
 
   /**
    * The underlying socket is either closing or closed.
@@ -23,10 +39,10 @@ export const enum State {
 
 export default class {
   /** Handle to kill this client after timeout. */
-  private timeout: NodeJS.Timeout = setTimeout(() => this.socket.close(), this.idleTimeout)
+  private timeout = new PausableTimeout(() => this.socket.close(), this.idleTimeout)
 
   /** Current state of connection. */
-  private state = State.ONLINE
+  state = State.ONLINE
 
   /** Name given by the client. */
   name?: Name
@@ -37,26 +53,33 @@ export default class {
   /** Activated when changing state. */
   readonly stateChange: SafeEmitter<State> = new SafeEmitter(
     newState => logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState),
+    newState => newState != this.state && this.failure(Error(`${this.id}> state activated but stayed as ${this.state}`)),
     newState => {
-      if (newState != this.state)
-        switch (this.state = newState) {
-          case State.CONNECTED:
-            logger(Level.INFO, this.id, '> opened a connection')
-            break
+      switch (this.state = newState) {
+        case State.CONNECTED:
+          logger(Level.INFO, this.id, '> opened a connection')
+          this.timeout.resume()
+          break
 
-          // We can stop the timer now
-          case State.DEAD:
-            logger(Level.INFO, this.id, '> closed a connection')
-            clearTimeout(this.timeout)
-            delete this.timeout
-            break
+        case State.AWAITING_RESPONSE:
+          this.timeout.pause()
+          break
 
-          case State.IDLE:
-            logger(Level.INFO, this.id, '> joined lobby', this.lobby, 'as', this.name)
-            break
-        }
-      else
-        logger(Level.SEVERE, this.id, '> state activated but stayed as', this.state)
+        case State.DEAD:
+          logger(Level.INFO, this.id, '> closed a connection')
+        // fall-thru
+
+        case State.SYNCING:
+          this.timeout.stop()
+          break
+
+        case State.IN_LOBBY:
+          logger(Level.INFO, this.id, '> joined lobby', this.lobby, 'as', this.name)
+        // fall-thru
+
+        default:
+          this.timeout.resume()
+      }
     })
 
   /** Activated when the client talks to the server. */
@@ -69,7 +92,7 @@ export default class {
           const { name, lobby } = getIntro(data)
           this.name = name.substr(0, this.maxNameLength)
           this.lobby = lobby
-          this.stateChange.activate(State.IDLE)
+          this.stateChange.activate(State.IN_LOBBY)
         } catch (err) {
           this.failure(err)
         }

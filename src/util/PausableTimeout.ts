@@ -6,9 +6,8 @@ export default class {
 
   constructor(
     private readonly fn: (...args: any[]) => void,
-    private remaining: number) {
-    this.resume()
-  }
+    private remaining: number
+  ) { }
 
   resume() {
     this.start = Date.now()

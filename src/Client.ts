@@ -3,7 +3,7 @@ import * as WebSocket from 'ws'
 import { SafeEmitter } from 'fancy-emitter'
 import { getIntro, Name, LobbyID } from './util/messages'
 import logger, { Level } from './util/logger'
-import PausableTimeout from './util/pausableTimeout'
+import PausableTimeout from './util/PausableTimeout'
 
 export const enum State {
   /** Client that has just successfully initiated a connection. */
@@ -53,13 +53,9 @@ export default class {
   /** Activated when changing state. */
   readonly stateChange: SafeEmitter<State> = new SafeEmitter(
     newState => logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState),
-    newState => newState != this.state && this.failure(Error(`${this.id}> state activated but stayed as ${this.state}`)),
+    newState => newState == this.state && this.failure(Error(`state activated but stayed as ${this.state}`)),
     newState => {
       switch (this.state = newState) {
-        case State.CONNECTED:
-          this.timeout.resume()
-          break
-
         case State.AWAITING_RESPONSE:
           this.timeout.pause()
           break
@@ -69,6 +65,7 @@ export default class {
           this.timeout.stop()
           break
 
+        case State.CONNECTED:
         default:
           this.timeout.resume()
       }
@@ -113,6 +110,5 @@ export default class {
 
   private failure = (err: Error) =>
     logger(Level.SEVERE, 'An error occurred with connection', this.id, err)
-    && this.stateChange.activate(State.DEAD)
     && this.socket.terminate()
 }

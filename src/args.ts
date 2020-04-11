@@ -11,8 +11,7 @@ export const {
 } = strict()
   .version(version)
   .help()
-  .usage(`${description}
-  Usage: ${name} [options]`)
+  .usage(`${description}\nUsage: ${name} [options]`)
   .count('verbose')
   .alias('v', 'verbose')
   .option('max-length', {

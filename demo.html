@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Tester</title>
+</head>
+
+<body>
+  <form action="#" id="connect" onsubmit="return false">
+    <input id="port" name="port" type="number" autofocus autocomplete />
+    <input type="submit">
+  </form>
+  <script>
+    const wss = [],
+      params = new URLSearchParams(window.location.search)
+
+    if (params.has('port')) {
+      document.getElementById('port').value = params.get('port')
+      connect(params.get('port'))
+    }
+
+    function send(data, index = 0) {
+      wss[index].send(JSON.stringify(data))
+    }
+
+    function connect(port) {
+      const ws = new WebSocket(`ws://localhost:${port}`),
+        id = wss.length
+      ws.onclose = e => console.log(id, 'closed connection')
+      ws.onmessage = ({ data }) => console.log(id, 'recieved', data)
+      wss.push(ws)
+    }
+
+    document.getElementById('connect').addEventListener('submit', ({ target }) => {
+      connect(target.elements.port.value)
+      // return false
+    })
+  </script>
+</body>
+
+</html>

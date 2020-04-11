@@ -39,10 +39,10 @@ export default function (
           break
 
         // Prepares a lobby of a specific ID and adds client to it
-        case State.IDLE:
+        case State.IN_LOBBY:
           if (!lobbies.has(client.lobby!))
             lobbies.set(client.lobby!, new Lobby)
-          lobbies.get(client.lobby!)!.addClient(client)
+          lobbies.get(client.lobby!)!.clientJoin.activate(client)
         // fall-thru
 
         case State.DEAD:

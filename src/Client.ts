@@ -57,7 +57,6 @@ export default class {
     newState => {
       switch (this.state = newState) {
         case State.CONNECTED:
-          logger(Level.INFO, this.id, '> opened a connection')
           this.timeout.resume()
           break
 
@@ -66,16 +65,9 @@ export default class {
           break
 
         case State.DEAD:
-          logger(Level.INFO, this.id, '> closed a connection')
-        // fall-thru
-
         case State.SYNCING:
           this.timeout.stop()
           break
-
-        case State.IN_LOBBY:
-          logger(Level.INFO, this.id, '> joined lobby', this.lobby, 'as', this.name)
-        // fall-thru
 
         default:
           this.timeout.resume()

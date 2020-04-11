@@ -2,7 +2,6 @@ let globalLevel: Level
 
 export const enum Level {
   SEVERE,
-  WARNING,
   INFO,
   DEBUG,
 }

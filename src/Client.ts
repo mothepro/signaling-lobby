@@ -1,7 +1,7 @@
-
 import * as WebSocket from 'ws'
 import { SafeEmitter } from 'fancy-emitter'
-import { getIntro, Name, LobbyID } from './util/messages'
+import { TextEncoder } from 'util'
+import { Name, LobbyID, Message, getIntro } from './messages'
 import logger, { Level } from './util/logger'
 import PausableTimeout from './util/PausableTimeout'
 

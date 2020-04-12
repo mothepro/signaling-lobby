@@ -1,6 +1,6 @@
 
 import * as WebSocket from 'ws'
-import { LobbyID } from './util/messages'
+import { LobbyID } from './messages'
 import Client, { State } from './Client'
 import Lobby from './Lobby'
 import openId from './util/openId'

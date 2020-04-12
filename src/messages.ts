@@ -1,5 +1,5 @@
 import { Data } from 'ws'
-import stringSantizer from './stringSantizer'
+import stringSantizer from './util/stringSantizer'
 
 export type Name = string
 
@@ -9,8 +9,13 @@ export type LobbyID = number
 /** Uint16 (2 bytes) to represent the ID of a client. */
 export type ClientID = number
 
+/** Data that can be sent to the client */
+export interface Message {
+  toBuffer(): ArrayBuffer
+}
+
 /** Tell the server to add me to lobby with other potential clients. */
-export type Intro = {
+export interface Intro {
   /** Name to use as client. */
   name: Name
 
@@ -28,7 +33,7 @@ export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
 }
 
 /** Update a group proposal. */
-export type Proposal = {
+export interface Proposal {
   /** True to accept or create, False to reject. */
   approve: boolean
 

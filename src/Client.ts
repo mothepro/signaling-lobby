@@ -2,7 +2,6 @@ import * as WebSocket from 'ws'
 import { SafeEmitter } from 'fancy-emitter'
 import { Name, LobbyID, getIntro } from './messages'
 import logger, { Level } from './util/logger'
-import PausableTimeout from './util/PausableTimeout'
 
 export const enum State {
   /** Client that has just successfully initiated a connection. */
@@ -39,7 +38,7 @@ export const enum State {
 
 export default class {
   /** Handle to kill this client after timeout. */
-  private timeout = new PausableTimeout(() => this.socket.close(), this.idleTimeout)
+  private timeout = setTimeout(() => this.socket.close(), this.idleTimeout)
 
   /** Current state of connection. */
   protected state = State.ONLINE
@@ -54,22 +53,8 @@ export default class {
   readonly stateChange: SafeEmitter<State> = new SafeEmitter(
     newState => logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState),
     newState => newState == this.state && this.failure(Error(`state activated but stayed as ${this.state}`)),
-    newState => {
-      switch (this.state = newState) {
-        case State.AWAITING_RESPONSE:
-          this.timeout.pause()
-          break
-
-        case State.DEAD:
-        case State.SYNCING:
-          this.timeout.stop()
-          break
-
-        case State.CONNECTED:
-        default:
-          this.timeout.resume()
-      }
-    })
+    newState => this.state = newState, // actually update
+    () => (this.state == State.DEAD || this.state == State.SYNCING) && clearTimeout(this.timeout))
 
   /** Activated when the client talks to the server. */
   readonly message: SafeEmitter<{ data: WebSocket.Data, state: State }> = new SafeEmitter(

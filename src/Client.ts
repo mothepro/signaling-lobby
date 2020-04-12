@@ -1,11 +1,8 @@
 import * as WebSocket from 'ws'
 import { SafeEmitter } from 'fancy-emitter'
-import { TextEncoder } from 'util'
-import { Name, LobbyID, Message, getIntro } from './messages'
+import { Name, LobbyID, getIntro } from './messages'
 import logger, { Level } from './util/logger'
 import PausableTimeout from './util/PausableTimeout'
-
-const encode = new TextEncoder().encode
 
 export const enum State {
   /** Client that has just successfully initiated a connection. */
@@ -40,7 +37,7 @@ export const enum State {
   DEAD,
 }
 
-export default class implements Message {
+export default class {
   /** Handle to kill this client after timeout. */
   private timeout = new PausableTimeout(() => this.socket.close(), this.idleTimeout)
 
@@ -108,17 +105,11 @@ export default class implements Message {
       this.stateChange.activate(State.CONNECTED)
   }
 
-  send = async (message: Message) =>
-    new Promise(resolve => this.socket.send(message.toBuffer(), {}, resolve))
+  send = async (message: ArrayBuffer | SharedArrayBuffer) =>
+    logger(Level.DEBUG, this.id, '< receiving', message)
+    && new Promise(resolve => this.socket.send(message, {}, resolve))
 
   failure = (err: Error) =>
     logger(Level.SEVERE, 'An error occurred with connection', this.id, err)
     && this.socket.terminate()
-
-  toBuffer() {
-    const ret = new Uint16Array(2 + Buffer.byteLength(this.name!, 'utf-8'))
-    ret.set([this.id])
-    ret.set(encode(this.name), 1)
-    return ret.buffer
-  }
 }

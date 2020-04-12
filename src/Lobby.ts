@@ -27,12 +27,11 @@ export default class {
     client => this.clients.set(client.id, client),
 
     // Message from browser
-    async ({ id, message, state, failure }) => {
-      for await (const data of message)
-        switch (state) {
-          case State.IN_LOBBY:
-            try {
-              const { approve, ids } = getProposal(data),
+    async ({ id, message, failure }) => {
+      for await (const { data, state } of message)
+        if (state == State.IN_LOBBY)
+          try {
+            const { approve, ids } = getProposal(data),
                 participantHash = hashIds(id, ...ids),
                 groupCreated = !this.groups.has(participantHash),
                 group = groupCreated

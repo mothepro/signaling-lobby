@@ -42,7 +42,7 @@ export default class {
   private timeout = new PausableTimeout(() => this.socket.close(), this.idleTimeout)
 
   /** Current state of connection. */
-  state = State.ONLINE
+  protected state = State.ONLINE
 
   /** Name given by the client. */
   name?: Name
@@ -72,9 +72,9 @@ export default class {
     })
 
   /** Activated when the client talks to the server. */
-  readonly message: SafeEmitter<WebSocket.Data> = new SafeEmitter(
-    data => logger(Level.DEBUG, this.id, '> sent', data),
-    data => {
+  readonly message: SafeEmitter<{ data: WebSocket.Data, state: State }> = new SafeEmitter(
+    ({data}) => logger(Level.DEBUG, this.id, '> sent', data),
+    ({data}) => {
       if (this.state == State.CONNECTED)
         try {
           // An introduction from the client
@@ -98,7 +98,7 @@ export default class {
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))
     socket.on('close', () => this.stateChange.activate(State.DEAD))
     socket.on('error', this.failure)
-    socket.on('message', this.message.activate)
+    socket.on('message', data => this.message.activate({data, state: this.state}))
 
     // Already opened
     if (socket.readyState == socket.OPEN)

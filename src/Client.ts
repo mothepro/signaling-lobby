@@ -5,6 +5,8 @@ import { Name, LobbyID, Message, getIntro } from './messages'
 import logger, { Level } from './util/logger'
 import PausableTimeout from './util/PausableTimeout'
 
+const encode = new TextEncoder().encode
+
 export const enum State {
   /** Client that has just successfully initiated a connection. */
   ONLINE,
@@ -22,6 +24,7 @@ export const enum State {
   IN_LOBBY,
 
   /** Client is proposed a group and waiting for responses. */
+  // TODO remove?
   AWAITING_RESPONSE,
 
   /**
@@ -37,7 +40,7 @@ export const enum State {
   DEAD,
 }
 
-export default class {
+export default class implements Message {
   /** Handle to kill this client after timeout. */
   private timeout = new PausableTimeout(() => this.socket.close(), this.idleTimeout)
 
@@ -105,10 +108,17 @@ export default class {
       this.stateChange.activate(State.CONNECTED)
   }
 
-  send = async (data: WebSocket.Data) =>
-    new Promise(resolve => this.socket.send(data, {}, resolve))
+  send = async (message: Message) =>
+    new Promise(resolve => this.socket.send(message.toBuffer(), {}, resolve))
 
-  private failure = (err: Error) =>
+  failure = (err: Error) =>
     logger(Level.SEVERE, 'An error occurred with connection', this.id, err)
     && this.socket.terminate()
+
+  toBuffer() {
+    const ret = new Uint16Array(2 + Buffer.byteLength(this.name!, 'utf-8'))
+    ret.set([this.id])
+    ret.set(encode(this.name), 1)
+    return ret.buffer
+  }
 }

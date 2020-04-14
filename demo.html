@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Tester</title>
+</head>
+
+<body>
+  <form action="#" id="connect" onsubmit="return false">
+    <input id="port" name="port" type="number" autofocus autocomplete />
+    <input type="submit">
+  </form>
+  <script>
+    const wss = [],
+      encoder = new TextEncoder,
+      params = new URLSearchParams(window.location.search)
+
+    if (params.has('port')) {
+      document.getElementById('port').value = params.get('port')
+      connect(params.get('port'))
+    }
+
+    function buildIntro(lobby, name) {
+      const nameBuf = encoder.encode(name),
+        buf = new ArrayBuffer(4 + nameBuf.byteLength)
+      new Int32Array(buf, 0, 1).set([lobby])
+      new Uint8Array(buf, 4).set(nameBuf)
+      return buf
+    }
+
+    function buildProposal(approve, ...ids) {
+      const buf = new ArrayBuffer(1 + 2 * ids.length),
+        view = new DataView(buf)
+      new Int8Array(buf, 0).set([approve])
+      for (let i = 0; i < ids.length; i++)
+        view.setUint16(1 + 2*i, ids[i], true)
+      return buf
+    }
+
+    function send(data, index = 0) {
+      wss[index].send(data)
+    }
+
+    function connect(port) {
+      const ws = new WebSocket(`ws://localhost:${port}`),
+        id = wss.length
+      ws.onclose = e => console.log(id, 'closed connection')
+      ws.onmessage = async ({ data }) => console.log(id, await data.arrayBuffer())
+      wss.push(ws)
+    }
+
+    document.getElementById('connect').addEventListener('submit', ({ target }) => {
+      connect(target.elements.port.value)
+      // return false
+    })
+  </script>
+</body>
+
+</html>

@@ -1,5 +1,4 @@
-const maxNameLength = 20,
-  zeroWidthCharCodes = new Set<number>()
+const zeroWidthCharCodes = new Set<number>()
     .add(0x200B) // Zero Width Space
     .add(0x200C) // Zero Width non - joiner Unicode code point
     .add(0x200D) // Zero Width joiner Unicode code point
@@ -17,10 +16,11 @@ const maxNameLength = 20,
 
 /** Removes any bad characters from a user's string. */
 export default function (input: unknown) {
-  if (typeof input == 'string')
-    return input
-      .replace(new RegExp(`[${String.fromCharCode(...zeroWidthCharCodes)}]`, 'g'), '')
-      .substr(0, maxNameLength)
+  if (typeof input == 'string') {
+    input = input.replace(new RegExp(`[${String.fromCharCode(...zeroWidthCharCodes)}]`, 'g'), '')
+    if (input)
+      return input as string
+  }
 
   throw TypeError('Expected to sanitize a string')
 }

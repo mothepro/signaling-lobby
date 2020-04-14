@@ -41,7 +41,8 @@ export default function (
         // Prepares a lobby of a specific ID and adds client to it
         case State.IN_LOBBY:
           if (!lobbies.has(client.lobby!))
-            lobbies.set(client.lobby!, new Lobby)
+            logger(Level.INFO, 'Creating lobby', client.lobby)
+            && lobbies.set(client.lobby!, new Lobby)
           lobbies.get(client.lobby!)!.clientJoin.activate(client)
           logger(Level.INFO, client.id, '> joined lobby', client.lobby, 'as', client.name)
         // fall-thru
@@ -49,6 +50,7 @@ export default function (
         case State.DEAD:
           pendingClients.delete(client)
           break
+          // return // We no longer care for status updates?
       }
   })
 

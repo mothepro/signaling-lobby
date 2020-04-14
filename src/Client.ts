@@ -19,10 +19,6 @@ export const enum State {
    */
   IN_LOBBY,
 
-  /** Client is proposed a group and waiting for responses. */
-  // TODO remove?
-  AWAITING_RESPONSE,
-
   /**
    * Group established.
    * Should only send a `offer` & `answer` to sync SDPs.
@@ -41,7 +37,7 @@ export default class {
   private timeout = setTimeout(() => this.socket.close(), this.idleTimeout)
 
   /** Current state of connection. */
-  protected state = State.ONLINE
+  state = State.ONLINE
 
   /** Name given by the client. */
   name?: Name
@@ -57,9 +53,9 @@ export default class {
     () => (this.state == State.DEAD || this.state == State.SYNCING) && clearTimeout(this.timeout))
 
   /** Activated when the client talks to the server. */
-  readonly message: SafeEmitter<{ data: WebSocket.Data, state: State }> = new SafeEmitter(
-    ({data}) => logger(Level.DEBUG, this.id, '> sent', data),
-    ({data}) => {
+  readonly message: SafeEmitter<WebSocket.Data> = new SafeEmitter(
+    data => logger(Level.DEBUG, this.id, '> sent', data),
+    data => {
       if (this.state == State.CONNECTED)
         try {
           // An introduction from the client
@@ -83,7 +79,7 @@ export default class {
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))
     socket.on('close', () => this.stateChange.activate(State.DEAD))
     socket.on('error', this.failure)
-    socket.on('message', data => this.message.activate({data, state: this.state}))
+    socket.on('message', this.message.activate)
 
     // Already opened
     if (socket.readyState == socket.OPEN)

@@ -21,8 +21,9 @@ export interface Intro {
   lobby: LobbyID
 }
 
+// TODO use a STATUS bit to determine data type
 export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
-  if (input instanceof Buffer) // Array buffers are converted :(
+  if (input instanceof Buffer && input.byteLength > 4) // Array buffers are converted :(
     return {
       lobby: input.readInt32LE(0),
       name: stringSantizer(input.toString('utf-8', 4)),
@@ -40,7 +41,7 @@ export interface Proposal {
 }
 
 export function getProposal(input: Data): Proposal {
-  if (input instanceof Buffer && input.byteLength >= 3 && input.byteLength % 2 == 1) {
+  if (input instanceof Buffer && input.byteLength >= 1 + 2 && input.byteLength % 2 == 1) {
     // Casting to a UInt16Array doesn't work due to `ws` prepending some values
     const ids: Set<ClientID> = new Set
     for (let offset = 1; offset < input.byteLength; offset += 2)
@@ -74,10 +75,10 @@ function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, {name, id}: 
   return ret.buffer
 }
 
-function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, {participants}: Group) {
-  const ret = new DataView(new ArrayBuffer(1 + participants.size * 2))
+function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, {clients}: Group) {
+  const ret = new DataView(new ArrayBuffer(1 + clients.size * 2))
   ret.setUint8(0, approval)
-  new Uint16Array(ret.buffer, 1).set([...participants])
+  new Uint16Array(ret.buffer, 1).set([...clients].map(({id}) => id))
   return ret.buffer
 }
 

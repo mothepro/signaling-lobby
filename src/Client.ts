@@ -76,6 +76,7 @@ export default class {
     /** ms to wait before to kill this client if they are not grouped. */
     private readonly idleTimeout: number,
   ) {
+    socket.binaryType = 'arraybuffer'
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))
     socket.on('close', () => this.stateChange.activate(State.DEAD))
     socket.on('error', this.failure)

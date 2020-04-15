@@ -4,8 +4,11 @@
 
 ## Install
 
-`yarn add @mothepro/signaling-lobby`
+`yarn add signaling-lobby`
 
 ## How to Use
 
-TODO...
+## Roadmap
+
++ add DoS prevention (potenetially using 'headers' event and & shouldHandle method)
++ merge maxConnections and maxBacklog

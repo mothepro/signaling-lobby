@@ -19,17 +19,21 @@
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "mocha -r should -r should-sinon dist/test/*.js",
+    "test": "mocha dist/npm/test/*.js",
     "prerelease": "npm run build",
     "release": "np",
     "prestart": "npm run build",
-    "start": "node ./dist/npm/index.js -v"
+    "start": "node ./dist/npm/index.js"
   },
   "devDependencies": {
+    "@types/mocha": "^7.0.2",
     "@types/node": "^13.11.1",
+    "@types/should": "^13.0.0",
     "@types/ws": "^7.2.4",
     "@types/yargs": "^15.0.4",
+    "mocha": "^7.1.1",
     "np": "^6.2.1",
+    "should": "^13.2.3",
     "typescript": "^3.8.3",
     "yargs": "^15.3.1"
   },

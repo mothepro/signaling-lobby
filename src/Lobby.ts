@@ -19,6 +19,9 @@ export default class {
    */
   private readonly groups: Map<string, Group> = new Map
 
+  /** Number of clients in this lobby or in non-syncing groups. */
+  get clientCount() { return this.clients.size }
+
   readonly clientJoin = new SafeEmitter<Client>(
     // Tell everyone else about me
     client => [...this.clients.values()].map(({ send }) => send(clientJoin(client))),
@@ -54,16 +57,16 @@ export default class {
           for (const group of this.groups.values())
             if (group.clients.has(client))
               group.ready.deactivate(Error(`${client.id} has been disconnected`))
-          
+
           // Notify for deactivation if the client still 
           for (const { send, state: otherState } of this.clients.values())
             if (otherState == State.IN_LOBBY)
               send(clientLeave(client))
-          
+
           return // stop listener, it is done
         }
     })
-  
+
   /** Create and clean up a group once it is no longer needed. */
   async makeGroup(initiator: Client, ...ids: ClientID[]) {
     const participants: Set<Client> = new Set,
@@ -74,7 +77,7 @@ export default class {
         participants.add(this.clients.get(clientId)!)
       else
         return logger(Level.DEBUG, initiator.id, '> tried to add some non-existent members to group', ids)
-    
+
     try {
       logger(Level.INFO, initiator.id, '> proposed group to include', ids)
 
@@ -82,7 +85,6 @@ export default class {
       this.groups.set(hash, group)
 
       await group.ready.event
-      return // stop listener, it is done
     } catch (e) {
       logger(Level.DEBUG, 'Group deleted', e)
     } finally {

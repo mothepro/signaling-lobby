@@ -10,4 +10,6 @@ export const enum Level {
 
 export const setLevel = (level: Level | number) => globalLevel = level
 
-export default (level: Level, ...args: unknown[]) => globalLevel >= level && console.log(...args) || true as const
+export default (level: Level, ...args: unknown[]) => globalLevel >= level
+  && console.log(...args)
+  || true as const // Makes chaining easier...

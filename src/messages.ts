@@ -1,8 +1,11 @@
 import { Data } from 'ws'
-import { TextEncoder } from 'util'
+import { TextEncoder, TextDecoder } from 'util'
 import stringSantizer from './util/stringSantizer'
 import Client from './Client'
 import Group from './Group'
+
+const encoder = new TextEncoder
+const decoder = new TextDecoder
 
 export type Name = string
 
@@ -11,6 +14,18 @@ export type LobbyID = number
 
 /** Uint16 (2 bytes) to represent the ID of a client. */
 export type ClientID = number
+
+function dataToView(input: Data, type: string, ...assertions: ((view: DataView) => boolean)[]) {
+  if (input instanceof ArrayBuffer) {
+    const data = new DataView(input)
+    for (const assert of assertions)
+      if (!assert(data))
+        break
+    return data
+  }
+    
+  throw TypeError(`Expected ${type} but got '${input}'`)
+}
 
 /** Tell the server to add me to lobby with other potential clients. */
 export interface Intro {
@@ -23,12 +38,11 @@ export interface Intro {
 
 // TODO use a STATUS bit to determine data type
 export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
-  if (input instanceof Buffer && input.byteLength > 4) // Array buffers are converted :(
-    return {
-      lobby: new DataView(input).getUint32(0),
-      name: toUtf8(input, 4),
-    }
-  throw TypeError(`Expected Introduction but got '${input}'`)
+  const data = dataToView(input, 'Introduction', view => view.byteLength > 4)
+  return {
+    lobby: data.getInt32(0, true),
+    name: stringSantizer(decoder.decode(data.buffer.slice(4))),
+  }
 }
 
 /** Update a group proposal. */
@@ -41,23 +55,19 @@ export interface Proposal {
 }
 
 export function getProposal(input: Data): Proposal {
-  if (input instanceof Buffer && input.byteLength >= 1 + 2 && input.byteLength % 2 == 1) {
-    // Casting to a UInt16Array doesn't work due to `ws` prepending some values
-    const ids: Set<ClientID> = new Set
-    for (let offset = 1; offset < input.byteLength; offset += 2)
-      ids.add(input.readUInt16LE(offset))
-
-    return {
-      ids,
-      approve: !!input.readUInt8(0),
-    }
+  const data = dataToView(
+    input, 'Group Proposal',
+    view => view.getUint8(0) == 0 || view.getUint8(0) == 1,
+    ({ byteLength }) => byteLength >= 1 + 2,
+    ({ byteLength }) => byteLength % 2 == 1)
+  
+  return {
+    ids: new Set(new Uint16Array(data.buffer.slice(1))),
+    approve: !!data.getUint8(0),
   }
-  throw TypeError(`Expected ID but got '${input}'`)
 }
 
 // Data sent to the browsers
-
-const encoder = new TextEncoder
 
 enum Code {
   CLIENT_LEAVE,

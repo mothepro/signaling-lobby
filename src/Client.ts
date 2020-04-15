@@ -54,7 +54,7 @@ export default class {
 
   /** Activated when the client talks to the server. */
   readonly message: SafeEmitter<WebSocket.Data> = new SafeEmitter(
-    data => logger(Level.DEBUG, this.id, '> sent', data),
+    data => logger(Level.TRANSFER, this.id, '>', data),
     data => {
       if (this.state == State.CONNECTED)
         try {
@@ -88,7 +88,7 @@ export default class {
   }
 
   send = async (message: ArrayBuffer | SharedArrayBuffer) =>
-    logger(Level.DEBUG, this.id, '< receiving', message)
+    logger(Level.TRANSFER, this.id, '<', message)
     && new Promise(resolve => this.socket.send(message, {}, resolve))
 
   failure = (err: Error) =>

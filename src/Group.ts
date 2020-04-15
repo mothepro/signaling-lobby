@@ -30,7 +30,7 @@ export default class {
   }
 
   private async bind(client: Client) {
-    for await (const data of client.message) {
+    for await (const data of client.message)
       switch (client.state) {
         case State.IN_LOBBY:
           try {
@@ -55,6 +55,5 @@ export default class {
         case State.SYNCING:
           break
       }
-    }
   }
 }

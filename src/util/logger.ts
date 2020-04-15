@@ -5,6 +5,7 @@ export const enum Level {
   USEFUL,
   INFO,
   DEBUG,
+  TRANSFER,
 }
 
 export const setLevel = (level: Level | number) => globalLevel = level

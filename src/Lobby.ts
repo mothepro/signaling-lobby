@@ -34,30 +34,11 @@ export default class {
       for await (const data of client.message)
         if (client.state == State.IN_LOBBY)
           try {
-            const { approve, ids } = getProposal(data),
-              participantHash = hashIds(client.id, ...ids),
-              participants: Set<Client> = new Set
-
-            for (const clientId of ids)
-              if (this.clients.has(clientId))
-                participants.add(this.clients.get(clientId)!)
+            const { approve, ids } = getProposal(data)
 
             // Recieved a Create Group Proposal
-            if (approve && !this.groups.has(participantHash)) {
-              try {
-                logger(Level.INFO, client.id, '> proposed group to include', ids)
-
-                const group = new Group(client, participants, new Set(this.clients.keys()))
-                this.groups.set(participantHash, group)
-
-                await group.ready.event
-                return // stop listener, it is done
-              } catch (e) {
-                logger(Level.DEBUG, 'group deleted', e)
-              } finally {
-                this.groups.delete(participantHash)
-              }
-            }
+            if (approve && !this.groups.has(hashIds(client.id, ...ids)))
+              this.makeGroup(client, ...ids)
           } catch (e) {
             client.failure(e)
           }
@@ -82,4 +63,30 @@ export default class {
           return // stop listener, it is done
         }
     })
+  
+  /** Create and clean up a group once it is no longer needed. */
+  async makeGroup(initiator: Client, ...ids: ClientID[]) {
+    const participants: Set<Client> = new Set,
+      hash = hashIds(initiator.id, ...ids)
+
+    for (const clientId of ids)
+      if (this.clients.has(clientId))
+        participants.add(this.clients.get(clientId)!)
+      else
+        return logger(Level.DEBUG, initiator.id, '> tried to add some non-existent members to group', ids)
+    
+    try {
+      logger(Level.INFO, initiator.id, '> proposed group to include', ids)
+
+      const group = new Group(initiator, participants)
+      this.groups.set(hash, group)
+
+      await group.ready.event
+      return // stop listener, it is done
+    } catch (e) {
+      logger(Level.DEBUG, 'Group deleted', e)
+    } finally {
+      this.groups.delete(hash)
+    }
+  }
 }

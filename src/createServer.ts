@@ -26,8 +26,8 @@ export default function (
     // The web server
     host = new WebSocket.Server({ port, backlog, maxPayload, clientTracking: false, perMessageDeflate: false })
 
-  host.on('listening', () => logger(Level.SEVERE, 'Signaling server initiated', host.address()))
-  host.on('close', () => logger(Level.SEVERE, 'Shutting down the signaling server'))
+  host.on('listening', () => logger(Level.USEFUL, 'Signaling server initiated', host.address()))
+  host.on('close', () => logger(Level.USEFUL, 'Shutting down the signaling server'))
   host.on('error', err => logger(Level.SEVERE, 'An error occurred with the signaling server', err) && host.close())
   host.on('connection', async (socket: WebSocket) => {
     const client = new Client(ids.next().value, socket, maxNameLength, idleTimout)

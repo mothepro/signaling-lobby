@@ -1,7 +1,8 @@
-let globalLevel: Level
+let globalLevel = Level.SEVERE
 
 export const enum Level {
   SEVERE,
+  USEFUL,
   INFO,
   DEBUG,
 }

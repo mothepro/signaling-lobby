@@ -92,6 +92,6 @@ export default class {
     && new Promise(resolve => this.socket.send(message, {}, resolve))
 
   failure = (err: Error) =>
-    logger(Level.SEVERE, 'An error occurred with connection', this.id, err)
+    logger(Level.USEFUL, 'An error occurred with connection', this.id, err)
     && this.socket.terminate()
 }

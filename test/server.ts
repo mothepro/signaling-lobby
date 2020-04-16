@@ -3,9 +3,8 @@ import WebSocket from 'ws'
 import createServer from '../src/createServer'
 import { makeClient } from './util'
 
-let server: ReturnType<typeof createServer>
-
 describe('Server', () => {
+  let server: ReturnType<typeof createServer>
 
   beforeEach(() => server = createServer(0, 2 ** 10, 2, 20, 500))
 
@@ -14,7 +13,7 @@ describe('Server', () => {
   it('Clients can connect', done => server.on('listening', () => {
     const client = makeClient(server)
 
-    client.on('open', () => { // This happens after the server connection completes
+    client.once('open', () => { // This happens after the server connection completes
       client.readyState.should.eql(WebSocket.OPEN)
       server.clientCount.should.equal(1)
       done()
@@ -35,12 +34,11 @@ describe('Server', () => {
     })
   }))
 
-  it('Idlers are kicked', done => server.on('listening', () => {
-    const client = makeClient(server)
-
-    client.on('open', () => setTimeout(() => setImmediate(() => {
-      server.clientCount.should.equal(0)
-      done()
-    }), 500))
+  it('Idlers are kicked', () => new Promise((resolve, reject) => {
+    server.on('listening', () => {
+      const client = makeClient(server)
+      client.once('close', resolve)
+      client.once('open', () => setTimeout(reject, 500))
+    })
   }))
 })

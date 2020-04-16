@@ -13,7 +13,7 @@ export default function (
   maxPayload: number,
   maxConnections: number,
   maxNameLength: number,
-  idleTimout: number,
+  idleTimeout: number,
   // Possibly the same as connections
   backlog = maxConnections,
 ) {
@@ -38,7 +38,7 @@ export default function (
   host.on('error', err => logger(Level.SEVERE, 'An error occurred with the signaling server', err) && host.close())
   host.on('connection', async (socket: WebSocket) => {
     if (host.clientCount < maxConnections) {
-      const client = new Client(ids.next().value, socket, maxNameLength, idleTimout)
+      const client = new Client(ids.next().value, socket, maxNameLength, idleTimeout)
 
       for await (const state of client.stateChange)
         switch (state) {

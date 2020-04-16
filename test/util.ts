@@ -1,5 +1,7 @@
-import { LobbyID, ClientID } from '../src/messages'
 import { TextEncoder } from 'util'
+import WebSocket, { AddressInfo } from 'ws'
+import { LobbyID, ClientID } from '../src/messages'
+import createServer from '../src/createServer'
 
 const encoder = new TextEncoder
 
@@ -16,3 +18,6 @@ export function buildProposal(approve: boolean, ...ids: ClientID[]) {
   new Uint16Array(buf.buffer, 1).set(ids)
   return buf.buffer
 }
+
+export const makeClient = (server: ReturnType<typeof createServer>) =>
+  new WebSocket(`ws://localhost:${(server.address() as AddressInfo).port}`)

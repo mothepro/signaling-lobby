@@ -34,8 +34,7 @@
       const buf = new ArrayBuffer(1 + 2 * ids.length),
         view = new DataView(buf)
       new Int8Array(buf, 0).set([approve])
-      for (let i = 0; i < ids.length; i++)
-        view.setUint16(1 + 2*i, ids[i], true)
+      new Uint16Array(buf, 1).set(ids)
       return buf
     }
 

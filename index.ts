@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import createServer from './src/createServer'
 import { setLevel } from './src/util/logger'
 import { verbose, port, maxLength, maxConnections, maxPayload, idleTimeout } from './src/args'
+import Server from './src/Server'
 
 setLevel(verbose)
-createServer(port, maxPayload, maxConnections, maxLength, idleTimeout)
+new Server(port, maxPayload, maxConnections, maxLength, idleTimeout)

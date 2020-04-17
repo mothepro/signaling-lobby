@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "mocha dist/npm/test/*.js",
+    "test": "mocha dist/npm/test/*.js --exit",
     "prerelease": "npm run build",
     "release": "np",
     "prestart": "npm run build",

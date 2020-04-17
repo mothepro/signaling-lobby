@@ -71,7 +71,7 @@ export default class {
   constructor(
     /** An ID that is unique to this client. */
     readonly id: number,
-    private readonly socket: WebSocket,
+    readonly socket: WebSocket,
     private readonly maxNameLength: number,
     /** ms to wait before to kill this client if they are not grouped. */
     private readonly idleTimeout: number,
@@ -82,9 +82,9 @@ export default class {
     socket.on('error', this.failure)
     socket.on('message', this.message.activate)
 
-    // Already opened
+    // Already opened, lets activate on the next tick to allow async listeners to be bound
     if (socket.readyState == socket.OPEN)
-      this.stateChange.activate(State.CONNECTED)
+      setImmediate(() => this.stateChange.activate(State.CONNECTED))
   }
 
   send = async (message: ArrayBuffer | SharedArrayBuffer) =>

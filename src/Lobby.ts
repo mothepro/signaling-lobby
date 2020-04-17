@@ -9,7 +9,7 @@ export const hashIds = (...ids: ClientID[]) => ids.sort().join()
 
 export default class {
   /** All the clients */
-  private readonly clients: Map<ClientID, Client> = new Map
+  readonly clients: Map<ClientID, Client> = new Map
 
   /**
    * List of pending groups.
@@ -18,9 +18,6 @@ export default class {
    * Values are the clients who have accepted so far.
    */
   private readonly groups: Map<string, Group> = new Map
-
-  /** Number of clients in this lobby or in non-syncing groups. */
-  get clientCount() { return this.clients.size }
 
   readonly clientJoin = new SafeEmitter<Client>(
     // Tell everyone else about me

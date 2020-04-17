@@ -4,4 +4,4 @@ import { verbose, port, maxLength, maxConnections, maxPayload, idleTimeout } fro
 import Server from './src/Server'
 
 setLevel(verbose)
-new Server(port, maxPayload, maxConnections, maxLength, idleTimeout)
+new Server({ port, maxPayload, maxConnections, maxLength, idleTimeout })

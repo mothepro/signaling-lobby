@@ -17,7 +17,7 @@ export default class {
     this.socket.on('message', this.message.activate)
   }
 
-  readonly send = (data: any) => this.socket.send(data)
+  readonly send = (data: ArrayBuffer) => this.socket.send(data)
   readonly exit = () => this.socket.close()
 
   get readyState() { return this.socket.readyState }

@@ -5,6 +5,7 @@ import { LobbyID } from './messages'
 import Lobby from './Lobby'
 import openId from './util/openId'
 import logger, { Level } from './util/logger'
+import { Max } from './util/constants'
 
 // TODO add DoS prevention use
 export default class {
@@ -18,7 +19,7 @@ export default class {
   private readonly host: WebSocket.Server
 
   /** Create available IDs for the clients */
-  private readonly ids = openId(0xFFFF)
+  private readonly ids = openId(Max.SHORT)
 
   readonly listening = new SafeSingleEmitter(() => logger(Level.USEFUL, 'Signaling server initiated', this.host.address()))
 

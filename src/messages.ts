@@ -1,6 +1,7 @@
 import { Data } from 'ws'
 import { TextEncoder, TextDecoder } from 'util'
 import stringSantizer from './util/stringSantizer'
+import { Size } from './util/constants'
 import Client from './Client'
 import Group from './Group'
 
@@ -15,15 +16,13 @@ export type LobbyID = number
 /** Uint16 (2 bytes) to represent the ID of a client. */
 export type ClientID = number
 
-function dataToView(input: Data, type: string, ...assertions: ((view: DataView) => boolean)[]) {
+function dataToView(input: Data, type: string, assert: (view: DataView) => boolean) {
   if (input instanceof ArrayBuffer) {
     const data = new DataView(input)
-    for (const assert of assertions)
-      if (!assert(data))
-        break
-    return data
+    if (assert(data))
+      return data
   }
-    
+
   throw TypeError(`Expected ${type} but got '${input}'`)
 }
 
@@ -38,10 +37,10 @@ export interface Intro {
 
 // TODO use a STATUS bit to determine data type
 export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
-  const data = dataToView(input, 'Introduction', view => view.byteLength > 4)
+  const data = dataToView(input, 'Introduction', view => view.byteLength > Size.INT)
   return {
     lobby: data.getInt32(0, true),
-    name: stringSantizer(decoder.decode(data.buffer.slice(4))),
+    name: stringSantizer(decoder.decode(data.buffer.slice(Size.INT))),
   }
 }
 
@@ -55,40 +54,40 @@ export interface Proposal {
 }
 
 export function getProposal(input: Data): Proposal {
-  const data = dataToView(
-    input, 'Group Proposal',
-    view => view.getUint8(0) == 0 || view.getUint8(0) == 1,
-    ({ byteLength }) => byteLength >= 1 + 2,
-    ({ byteLength }) => byteLength % 2 == 1)
-  
+  const data = dataToView(input, 'Group Proposal',
+    // Leading true or false, followed by Shorts
+    view => view.byteLength >= Size.CHAR + Size.SHORT
+      && view.byteLength % Size.SHORT == Size.CHAR
+      && (view.getUint8(0) == +false || view.getUint8(0) == +true))
+
   return {
-    ids: new Set(new Uint16Array(data.buffer.slice(1))),
+    ids: new Set(new Uint16Array(data.buffer.slice(Size.CHAR))),
     approve: !!data.getUint8(0),
   }
 }
 
 // Data sent to the browsers
 
-enum Code {
+const enum Code {
   CLIENT_LEAVE,
   CLIENT_JOIN,
   GROUP_REQUEST,
   GROUP_REJECT,
 }
 
-function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, {name, id}: Client) {
+function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, { name, id }: Client) {
   const nameBuffer = encoder.encode(name),
-    ret = new DataView(new ArrayBuffer(1 + 2 + nameBuffer.byteLength))
+    ret = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT + nameBuffer.byteLength))
   ret.setUint8(0, join)
-  ret.setUint16(1, id, true)
-  new Uint8Array(ret.buffer, 3).set(nameBuffer)
+  ret.setUint16(Size.CHAR, id, true)
+  new Uint8Array(ret.buffer, Size.CHAR + Size.SHORT).set(nameBuffer)
   return ret.buffer
 }
 
-function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, {clients}: Group) {
-  const ret = new DataView(new ArrayBuffer(1 + clients.size * 2))
+function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, { clients }: Group) {
+  const ret = new DataView(new ArrayBuffer(Size.CHAR + clients.size * Size.SHORT))
   ret.setUint8(0, approval)
-  new Uint16Array(ret.buffer, 1).set([...clients].map(({id}) => id))
+  new Uint16Array(ret.buffer, Size.CHAR).set([...clients].map(({ id }) => id))
   return ret.buffer
 }
 

@@ -1,6 +1,5 @@
 import { CLOSED } from 'ws'
 import { State } from '../src/Client'
-import { Max } from './util/constants'
 import { buildIntro } from './util/builders'
 import ClientSocket from "./util/ClientSocket"
 import Server from '../src/Server'
@@ -8,11 +7,11 @@ import Server from '../src/Server'
 describe('Lobby', () => {
   let server: Server
 
-  beforeEach(() => server = new Server(0, Max.PAYLOAD, Max.CONNECTIONS, Max.NAME_LENGTH, Max.IDLE_TIME))
+  beforeEach(() => server = new Server)
 
   afterEach(() => server.close.activate())
 
-  it.only('Ignores non-intros before lobby', async () => {
+  it('Ignores non-intros before lobby', async () => {
     await server.listening.event
     const socket = new ClientSocket(server),
       client = await server.connection.next

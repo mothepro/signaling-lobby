@@ -1,13 +1,16 @@
 import 'should'
 import WebSocket from 'ws'
-import { Max } from './util/constants'
 import ClientSocket from './util/ClientSocket'
 import Server from '../src/Server'
+import { idleTimeout } from '../src/args'
 
 describe('Server', () => {
   let server: Server
 
-  beforeEach(() => server = new Server(0, Max.PAYLOAD, Max.CONNECTIONS, Max.NAME_LENGTH, Max.IDLE_TIME))
+  beforeEach(() => server = new Server({
+    maxConnections: 10,
+    idleTimeout: 1000
+  }))
 
   afterEach(() => server.close.activate())
 
@@ -23,7 +26,7 @@ describe('Server', () => {
 
   it('Respects max connections', async () => {
     await server.listening.event
-    const clients = new Array(Max.CONNECTIONS)
+    const clients = new Array(10)
       .fill(undefined)
       .map(() => new ClientSocket(server))
 
@@ -32,11 +35,11 @@ describe('Server', () => {
 
     // push the limit
     clients.push(new ClientSocket(server))
-    await clients[Max.CONNECTIONS].open.event
+    await clients[10].open.event
 
     // no increase
-    server.allClients.should.have.size(Max.CONNECTIONS)
-    await clients[Max.CONNECTIONS].close.event
+    server.allClients.should.have.size(10)
+    await clients[10].close.event
 
     // other clients stay open
     clients[0].close.triggered.should.be.false()
@@ -50,6 +53,6 @@ describe('Server', () => {
     setTimeout(() => {
       client.close.triggered.should.be.true()
       client.readyState.should.eql(1099)
-    }, Max.IDLE_TIME + 10 /* Delta */)
+    }, 1000 + 10 /* Delta */)
   })
 })

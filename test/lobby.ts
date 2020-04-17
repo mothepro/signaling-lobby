@@ -5,7 +5,7 @@ import { buildIntro } from './util/builders'
 import ClientSocket from "./util/ClientSocket"
 import Server from '../src/Server'
 
-describe('Client', () => {
+describe('Lobby', () => {
   let server: Server
 
   beforeEach(() => server = new Server(0, Max.PAYLOAD, Max.CONNECTIONS, Max.NAME_LENGTH, Max.IDLE_TIME))

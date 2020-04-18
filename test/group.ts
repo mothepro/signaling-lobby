@@ -6,7 +6,7 @@ import joinLobby from './util/joinLobby'
 describe('Groups', () => {
   let server: Server
 
-  beforeEach(() => server = new Server({syncTimeout: 100}))
+  beforeEach(() => server = new Server({ syncTimeout: 100 }))
 
   afterEach(() => server.close.activate())
 
@@ -22,6 +22,24 @@ describe('Groups', () => {
     approval.should.be.true()
     ids.should.have.size(1)
     ids.should.containEql(myId)
+  })
+
+  it('Group shut down after by data sent', async () => {
+    await server.listening.event
+    const [mySocket, myClient] = await joinLobby(server, 123, 'mo'),
+      [otherSocket, { id }] = await joinLobby(server, 123, 'momo')
+
+    mySocket.sendProposal(true, id)
+    await otherSocket.groupChange.next
+
+    mySocket.send(new Uint8Array([3, 1, 2]).buffer)
+
+    const [state] = await Promise.all([
+      myClient.stateChange.next,
+      mySocket.close.event,
+    ])
+    state.should.eql(State.DEAD)
+    mySocket.readyState.should.eql(CLOSED)
   })
 
   it('Can leave a group', async () => {
@@ -133,7 +151,7 @@ describe('Groups', () => {
       mySocket.groupFinal.next,
       otherSocket.groupFinal.next
     ])
-    
+
     const [myState, otherState] = await Promise.all([
       myClient.stateChange.next,
       otherClient.stateChange.next,
@@ -147,5 +165,24 @@ describe('Groups', () => {
     otherSocket.readyState.should.eql(CLOSED)
   })
 
-  it('leaves all other groups once syncing')
+  it('leaves all other groups once syncing', async () => {
+    await server.listening.event
+    const [socket0, client0] = await joinLobby(server, 123, 'mo'),
+      [socket1, client1] = await joinLobby(server, 123, 'momo'),
+      [socket2] = await joinLobby(server, 123, 'mothepro')
+
+    socket0.sendProposal(true, client1.id)
+    socket2.sendProposal(true, client0.id)
+    await socket1.groupChange.next
+
+    // Form group 0,1. Which should cancel 2,0 proposal
+    socket1.sendProposal(true, client0.id)
+
+    await Promise.all([
+      // Group members leaving
+      socket2.clientPresence.next,
+      socket0.groupFinal.next,
+      socket1.groupFinal.next,
+    ])
+  })
 })

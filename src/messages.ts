@@ -3,7 +3,6 @@ import { TextEncoder, TextDecoder } from 'util'
 import stringSantizer from './util/stringSantizer'
 import { Size } from './util/constants'
 import Client from './Client'
-import Group from './Group'
 
 const encoder = new TextEncoder
 const decoder = new TextDecoder

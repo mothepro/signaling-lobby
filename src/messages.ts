@@ -84,15 +84,15 @@ function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, id: ClientID
   return ret.buffer
 }
 
-function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, clients: ClientID[]) {
-  const ret = new DataView(new ArrayBuffer(Size.CHAR + clients.length * Size.SHORT))
+function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, ...ids: ClientID[]) {
+  const ret = new DataView(new ArrayBuffer(Size.CHAR + ids.length * Size.SHORT))
   ret.setUint8(0, approval)
-  new Uint16Array(ret.buffer, Size.CHAR).set(clients)
+  new Uint8Array(ret.buffer, Size.CHAR).set(new Uint16Array(ids))
   return ret.buffer
 }
 
 export const clientJoin = ({ name, id }: Client) => clientPresence(Code.CLIENT_JOIN, id, name!)
 export const clientLeave = ({ name, id }: Client) => clientPresence(Code.CLIENT_LEAVE, id, name!)
-export const groupJoin = ({ clients }: Group) => groupChange(Code.GROUP_REQUEST, [...clients].map(({ id }) => id))
-export const groupLeave = ({ clients }: Group) => groupChange(Code.GROUP_REJECT, [...clients].map(({ id }) => id))
+export const groupJoin = (...ids: ClientID[]) => groupChange(Code.GROUP_REQUEST, ...ids)
+export const groupLeave = (...ids: ClientID[]) => groupChange(Code.GROUP_REJECT, ...ids)
 

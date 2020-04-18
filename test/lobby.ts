@@ -3,7 +3,7 @@ import BrowserSocket from './util/BrowserSocket'
 import joinLobby from './util/joinLobby'
 import Server from '../src/Server'
 import { State } from '../src/Client'
-import { clientPresence } from './util/parsers'
+import { parseClientPresence } from './util/parsers'
 import { buildIntro } from './util/builders'
 
 describe('Lobby', () => {
@@ -69,8 +69,8 @@ describe('Lobby', () => {
 
     const [mySocket, myClient] = await joinLobby(server, 123, 'mo'),
       [otherSocket, otherClient] = await joinLobby(server, 123, 'momo'),
-      msg1 = clientPresence(await mySocket.message.next),
-      msg2 = clientPresence(await otherSocket.message.next)
+      msg1 = parseClientPresence(await mySocket.message.next),
+      msg2 = parseClientPresence(await otherSocket.message.next)
 
     msg1.join.should.be.true()
     msg2.join.should.be.true()
@@ -88,7 +88,7 @@ describe('Lobby', () => {
 
     socket2.exit()
     await client2.stateChange.next
-    const { join, id, name } = clientPresence(await socket.message.next)
+    const { join, id, name } = parseClientPresence(await socket.message.next)
 
     join.should.be.false()
     id.should.eql(client2.id)

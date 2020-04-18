@@ -15,13 +15,20 @@ export default class {
   readonly message = new SafeEmitter<Data>(data => {
     if (data instanceof Buffer)
       switch (data.readUInt8(0)) {
-        case Code.CLIENT_LEAVE:
         case Code.CLIENT_JOIN:
-          if (data.byteLength >= Size.CHAR + Size.SHORT + 1)
+          if (data.byteLength > Size.CHAR + Size.SHORT)
             this.clientPresence.activate({
-              join: data.readInt8(0) == Code.CLIENT_JOIN,
+              join: true,
               id: data.readUInt16LE(Size.CHAR),
               name: data.toString('utf-8', Size.CHAR + Size.SHORT)
+            })
+          break
+        
+        case Code.CLIENT_LEAVE:
+          if (data.byteLength == Size.CHAR + Size.SHORT)
+            this.clientPresence.activate({
+              join: false,
+              id: data.readUInt16LE(Size.CHAR),
             })
           break
 
@@ -48,7 +55,7 @@ export default class {
   readonly clientPresence = new SafeEmitter<{
     join: boolean
     id: ClientID
-    name: Name
+    name?: Name
   }>()
 
   /** Activated when a group proposal/ack/reject message is received. */

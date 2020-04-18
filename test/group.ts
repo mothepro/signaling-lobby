@@ -10,7 +10,6 @@ describe('Groups', () => {
 
   it('Propose a group', async () => {
     await server.listening.event
-
     const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
       [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
 
@@ -25,7 +24,6 @@ describe('Groups', () => {
 
   it('Can leave a group', async () => {
     await server.listening.event
-
     const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
       [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
 
@@ -44,7 +42,6 @@ describe('Groups', () => {
 
   it('Can leave a group after proposal', async () => {
     await server.listening.event
-
     const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
       [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
 
@@ -63,19 +60,39 @@ describe('Groups', () => {
 
   it('Form a group', async () => {
     await server.listening.event
-
     const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
       [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
 
     mySocket.sendProposal(true, otherId)
     otherSocket.sendProposal(true, myId)
-    
+
     const [myCode, otherCode] = await Promise.all([
       mySocket.groupFinal.next,
       otherSocket.groupFinal.next
     ])
-    
+
+    myCode.should.be.aboveOrEqual(0)
+    myCode.should.be.below(2 ** 32)
     myCode.should.eql(otherCode)
+  })
+
+  it('Notify lobby clients when group is formed', async () => {
+    await server.listening.event
+    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo'),
+      [guestSocket] = await joinLobby(server, 123, 'lamo')
+
+    mySocket.sendProposal(true, otherId)
+    otherSocket.sendProposal(true, myId)
+    await mySocket.groupFinal.next
+
+    const { id: id1, join: join1 } = await guestSocket.clientPresence.next,
+      { id: id2, join: join2 } = await guestSocket.clientPresence.next
+
+    join1.should.be.false()
+    join2.should.be.false()
+    id1.should.equalOneOf(myId, otherId)
+    id2.should.equalOneOf(myId, otherId)
   })
 
   it('be a part of multiple groups')

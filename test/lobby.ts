@@ -74,8 +74,8 @@ describe('Lobby', () => {
     msg2.join.should.be.true()
     msg1.id.should.eql(otherClient.id)
     msg2.id.should.eql(myClient.id)
-    msg1.name.should.eql('momo')
-    msg2.name.should.eql('mo')
+    msg1.name!.should.eql('momo')
+    msg2.name!.should.eql('mo')
   })
 
   it('Multiple clients are notified when leaving', async () => {
@@ -86,10 +86,9 @@ describe('Lobby', () => {
 
     socket2.exit()
     await client2.stateChange.next
-    const { join, id, name } = await socket.clientPresence.next
+    const { join, id } = await socket.clientPresence.next
 
     join.should.be.false()
     id.should.eql(client2.id)
-    name.should.eql('momo')
   })
 })

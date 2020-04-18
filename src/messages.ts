@@ -75,12 +75,19 @@ export const enum Code {
   GROUP_FINAL,
 }
 
-function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, id: ClientID, name: Name) {
-  const nameBuffer = encoder.encode(name),
+export function clientJoin({ name, id }: Client) {
+  const nameBuffer = encoder.encode(name!),
     ret = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT + nameBuffer.byteLength))
-  ret.setUint8(0, join)
+  ret.setUint8(0, Code.CLIENT_JOIN)
   ret.setUint16(Size.CHAR, id, true)
   new Uint8Array(ret.buffer, Size.CHAR + Size.SHORT).set(nameBuffer)
+  return ret.buffer
+}
+
+export function clientLeave({ id }: Client) {
+  const ret = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT))
+  ret.setUint8(0, Code.CLIENT_LEAVE)
+  ret.setUint16(Size.CHAR, id, true)
   return ret.buffer
 }
 
@@ -91,8 +98,6 @@ function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, ...ids: C
   return ret.buffer
 }
 
-export const clientJoin = ({ name, id }: Client) => clientPresence(Code.CLIENT_JOIN, id, name!)
-export const clientLeave = ({ name, id }: Client) => clientPresence(Code.CLIENT_LEAVE, id, name!)
 export const groupJoin = (...ids: ClientID[]) => groupChange(Code.GROUP_REQUEST, ...ids)
 export const groupLeave = (...ids: ClientID[]) => groupChange(Code.GROUP_REJECT, ...ids)
 

@@ -8,6 +8,7 @@ export const {
   'max-connections': maxConnections,
   'max-payload': maxPayload,
   'idle-timeout': idleTimeout,
+  'sync-timeout': syncTimeout,
 } = strict()
   .version(version)
   .help()
@@ -39,6 +40,14 @@ export const {
     description: 'The number of milliseconds a client can be connected to the server without joining a group',
     defaultDescription: '20 minutes',
     default: 20 * 60 * 1000,
+    demandOption: true,
+  })
+  .option('sync-timeout', {
+    alias: 's',
+    type: 'number',
+    description: 'The number of milliseconds a client will be connected to the server once syncing is complete',
+    defaultDescription: '2 minutes',
+    default: 2 * 60 * 1000,
     demandOption: true,
   })
   .option('port', {

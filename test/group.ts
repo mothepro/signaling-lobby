@@ -1,12 +1,12 @@
+import { CLOSED } from 'ws'
 import Server from '../src/Server'
+import { State } from '../src/Client'
 import joinLobby from './util/joinLobby'
-import { setLevel, Level } from '../src/util/logger'
-import { OutgoingMessage } from 'http'
 
 describe('Groups', () => {
   let server: Server
 
-  beforeEach(() => server = new Server)
+  beforeEach(() => server = new Server({syncTimeout: 100}))
 
   afterEach(() => server.close.activate())
 
@@ -122,6 +122,30 @@ describe('Groups', () => {
     incoming1.should.eql(Buffer.from([0xAB, 0xCD, 0xEF]))
   })
 
-  it('be a part of multiple groups')
+  it('Eventually the group shall elegantly close', async () => {
+    await server.listening.event
+    const [mySocket, myClient] = await joinLobby(server, 123, 'mo'),
+      [otherSocket, otherClient] = await joinLobby(server, 123, 'momo')
+
+    mySocket.sendProposal(true, otherClient.id)
+    otherSocket.sendProposal(true, myClient.id)
+    await Promise.all([
+      mySocket.groupFinal.next,
+      otherSocket.groupFinal.next
+    ])
+    
+    const [myState, otherState] = await Promise.all([
+      myClient.stateChange.next,
+      otherClient.stateChange.next,
+      mySocket.close.event,
+      otherSocket.close.event,
+    ])
+
+    myState.should.eql(State.DEAD)
+    otherState.should.eql(State.DEAD)
+    mySocket.readyState.should.eql(CLOSED)
+    otherSocket.readyState.should.eql(CLOSED)
+  })
+
   it('leaves all other groups once syncing')
 })

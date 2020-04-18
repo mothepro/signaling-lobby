@@ -49,6 +49,9 @@ export default class {
   }
 
   private async bind(client: Client) {
+    // Remove client once it is dead so it can be GC'd.
+    client.stateChange.on(state => state == State.DEAD && this.clients.delete(client))
+
     for await (const data of client.message)
       switch (client.state) {
         case State.IN_LOBBY:

@@ -57,6 +57,7 @@ export default class {
     maxConnections = 5,
     maxLength = 20,
     idleTimeout = 60 * 1000,
+    syncTimeout = 60 * 1000,
   } = {}) {
     this.host = new WebSocket.Server({ port, backlog: 0, maxPayload, clientTracking: false, perMessageDeflate: false })
     this.close.event.catch(err => logger(Level.SEVERE, 'An error occurred with the signaling server', err) && this.host.close())
@@ -71,7 +72,7 @@ export default class {
         return
       }
 
-      this.connection.activate(new Client(this.ids.next().value, socket, maxLength, idleTimeout))
+      this.connection.activate(new Client(this.ids.next().value, socket, maxLength, idleTimeout, syncTimeout))
     })
   }
 }

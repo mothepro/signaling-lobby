@@ -50,6 +50,7 @@ export default class {
     newState => logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState),
     newState => newState == this.state && this.failure(Error(`state activated but stayed as ${this.state}`)),
     newState => this.state = newState, // actually update
+    () => this.state == State.SYNCING && setTimeout(() => this.socket.close(), this.syncTimeout),
     () => (this.state == State.DEAD || this.state == State.SYNCING) && clearTimeout(this.timeout))
 
   /** Activated when the client talks to the server. */
@@ -75,6 +76,7 @@ export default class {
     private readonly maxNameLength: number,
     /** ms to wait before to kill this client if they are not grouped. */
     private readonly idleTimeout: number,
+    private readonly syncTimeout: number,
   ) {
     socket.binaryType = 'arraybuffer'
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))

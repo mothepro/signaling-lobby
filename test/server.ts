@@ -20,7 +20,7 @@ describe('Server', () => {
     // This happens after the server connection completes
     await client.open.event
     client.readyState.should.eql(WebSocket.OPEN)
-    server.allClients.should.have.size(1)
+    server.clientCount.should.eql(1)
   })
 
   it('Respects max connections', async () => {
@@ -37,7 +37,7 @@ describe('Server', () => {
     await overflow.open.event
 
     // no increase
-    server.allClients.should.have.size(10)
+    server.clientCount.should.eql(10)
     await overflow.close.event
 
     // other clients stay open

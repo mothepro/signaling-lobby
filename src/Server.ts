@@ -46,13 +46,8 @@ export default class {
         }
     })
 
-  get allClients() {
-    const allClients = new Set(this.pendingClients)
-    for (const lobby of this.lobbies.values())
-      for (const client of lobby.clients.values())
-        allClients.add(client)
-    return allClients
-  }
+  /** Number of clients in this server, both bound and unbound to a lobby. */
+  get clientCount() { return [...this.lobbies].reduce((prev, [, { clientCount }]) => prev + clientCount, this.pendingClients.size) }
 
   get address() { return this.host.address() as WebSocket.AddressInfo }
 
@@ -70,7 +65,7 @@ export default class {
     this.host.once('close', this.close.activate)
     this.host.once('error', this.close.deactivate)
     this.host.on('connection', async (socket: WebSocket) => {
-      if (maxConnections && this.allClients.size >= maxConnections) {
+      if (maxConnections && this.clientCount >= maxConnections) {
         logger(Level.USEFUL, 'This server is already at its max connections', maxConnections)
         socket.close()
         return

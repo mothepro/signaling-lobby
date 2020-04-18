@@ -66,7 +66,12 @@ export default class {
       if (this.clients.has(clientId))
         participants.add(this.clients.get(clientId)!)
       else
+        // TODO decide if client should be kicked for this
         return logger(Level.DEBUG, initiator.id, '> tried to add some non-existent members to group', ids)
+
+    // TODO decide if client should be kicked for this
+    if (!participants.size)
+      return logger(Level.DEBUG, initiator.id, '> Tried to make a group without members')
 
     try {
       const group = new Group(initiator, participants)

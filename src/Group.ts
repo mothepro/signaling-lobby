@@ -1,8 +1,7 @@
 import { SingleEmitter } from 'fancy-emitter'
-import { ClientID, getProposal, groupJoin } from './messages'
+import { ClientID, getProposal, groupJoin, groupLeave } from './messages'
 import Client, { State } from './Client'
 import logger, { Level } from './util/logger'
-import { addListener } from 'cluster'
 
 export default class {
 
@@ -18,9 +17,6 @@ export default class {
     initiator: Client,
     readonly clients: Set<Client>
   ) {
-    if (!this.clients.size)
-      throw Error('Not enough members to make a group')
-
     logger(Level.INFO, initiator.id, '> proposed group to include', this.clientIDs)
 
     this.clients.add(initiator)
@@ -61,8 +57,18 @@ export default class {
             if (ids.size == this.clients.size && ![...ids].filter(id => !this.clientIDs.has(id)).length)
               if (approve)
                 this.ack(client.id)
-              else
+              else {
+                for (const { id, send } of this.clients)
+                  if (id != client.id) {
+                    const groupIds = new Set(this.clientIDs)
+                    // ackr will go first
+                    groupIds.delete(client.id)
+                    // browser doesn't know their own id
+                    groupIds.delete(id)
+                    send(groupLeave(client.id, ...groupIds))
+                  }
                 this.ready.deactivate(Error(`${client.id} doesn't want to join ${[...ids]}`))
+              }
           } catch (_) { } // Ignore, the lobby will handle this
           break
 

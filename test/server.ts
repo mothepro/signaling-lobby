@@ -1,6 +1,6 @@
 import 'should'
 import WebSocket from 'ws'
-import ClientSocket from './util/BrowserSocket'
+import BrowserSocket from './util/BrowserSocket'
 import Server from '../src/Server'
 
 describe('Server', () => {
@@ -15,7 +15,7 @@ describe('Server', () => {
 
   it('Clients can connect', async () => {
     await server.listening.event
-    const client = new ClientSocket(server)
+    const client = new BrowserSocket(server)
 
     // This happens after the server connection completes
     await client.open.event
@@ -27,27 +27,28 @@ describe('Server', () => {
     await server.listening.event
     const clients = new Array(10)
       .fill(undefined)
-      .map(() => new ClientSocket(server))
+      .map(() => new BrowserSocket(server))
 
     // all clients must be connected
     await Promise.all(clients.map(client => client.open.event))
 
     // push the limit
-    clients.push(new ClientSocket(server))
-    await clients[10].open.event
+    const overflow = new BrowserSocket(server)
+    await overflow.open.event
 
     // no increase
     server.allClients.should.have.size(10)
-    await clients[10].close.event
+    await overflow.close.event
 
     // other clients stay open
-    clients[0].close.triggered.should.be.false()
+    for (const { close } of clients)
+      close.triggered.should.be.false()
   })
 
   it('Idlers are kicked', async () => {
     await server.listening.event
 
-    const client = new ClientSocket(server)
+    const client = new BrowserSocket(server)
     await client.open.event
     setTimeout(() => {
       client.close.triggered.should.be.true()

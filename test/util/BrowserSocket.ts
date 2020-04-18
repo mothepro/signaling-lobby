@@ -24,7 +24,7 @@ export default class {
         case Code.CLIENT_JOIN:
           if (data.byteLength >= Size.CHAR + Size.SHORT + 1)
             this.clientPresence.activate({
-              join: !!data.readInt8(0),
+              join: data.readInt8(0) == Code.CLIENT_JOIN,
               id: data.readUInt16LE(Size.CHAR),
               name: data.toString('utf-8', Size.CHAR + Size.SHORT)
             })
@@ -38,7 +38,7 @@ export default class {
             const ids = []
             for (let offset = Size.CHAR; offset < data.byteLength; offset += Size.SHORT)
               ids.push(data.readUInt16LE(offset))
-            this.groupChange.activate({ ids, approval: !!data.readInt8(0) })
+            this.groupChange.activate({ ids, approval: data.readInt8(0) == Code.GROUP_REQUEST })
           }
           break
 

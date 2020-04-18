@@ -3,17 +3,9 @@ import { TextEncoder } from 'util'
 import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
 import Server from '../../src/Server'
 import { Size } from '../../src/util/constants'
-import { ClientID, Name, LobbyID } from '../../src/messages'
+import { ClientID, Name, LobbyID, Code } from '../../src/messages'
 
 export const encoder = new TextEncoder
-
-// Should match code's sent from server to browsers
-const enum Code {
-  CLIENT_LEAVE,
-  CLIENT_JOIN,
-  GROUP_REQUEST,
-  GROUP_REJECT,
-}
 
 export default class {
   private socket: WebSocket
@@ -45,6 +37,10 @@ export default class {
           }
           break
 
+        case Code.GROUP_FINAL:
+          if (data.byteLength == Size.CHAR + Size.INT)
+            this.groupFinal.activate(data.readUInt32LE(Size.CHAR))
+          break
       }
   })
 
@@ -61,6 +57,9 @@ export default class {
     ids: ClientID[]
   }>()
 
+  /** Activated when a group finalization message is received. */
+  readonly groupFinal = new SafeEmitter<number>()
+
   constructor(server: Server) {
     this.socket = new WebSocket(`ws://localhost:${server.address.port}`)
     this.socket.once('open', this.open.activate)
@@ -75,12 +74,12 @@ export default class {
   /** Helper to send an intro */
   sendIntro(lobby: LobbyID, name: string) {
     const nameBuffer = encoder.encode(name),
-    buf = new DataView(new ArrayBuffer(Size.INT + nameBuffer.byteLength))
+      buf = new DataView(new ArrayBuffer(Size.INT + nameBuffer.byteLength))
     buf.setInt32(0, lobby, true)
     new Uint8Array(buf.buffer, Size.INT).set(nameBuffer)
     this.send(buf.buffer)
   }
-  
+
   /** Helper to send a group proposal */
   sendProposal(approve: boolean, ...ids: ClientID[]) {
     const buf = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT * ids.length))

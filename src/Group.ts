@@ -1,17 +1,20 @@
 import { SingleEmitter } from 'fancy-emitter'
-import { ClientID, getProposal, groupJoin, groupLeave } from './messages'
+import { ClientID, getProposal, groupJoin, groupLeave, groupFinal } from './messages'
 import Client, { State } from './Client'
 import logger, { Level } from './util/logger'
+import { Max } from './util/constants'
 
 export default class {
 
   private readonly acks: Set<ClientID> = new Set
   private readonly clientIDs = new Set([...this.clients].map(({ id }) => id))
+  /** Code to be sent to the clients when group is done. */
+  private readonly code = Math.trunc(Math.random() * Max.INT)
 
-  readonly ready = new SingleEmitter(() => {
-    for (const client of this.clients)
-      client.stateChange.activate(State.SYNCING)
-  })
+  readonly ready = new SingleEmitter(
+    () => logger(Level.INFO, this.clientIDs, 'have finalized a group'),
+    () => [...this.clients].map(({ stateChange }) => stateChange.activate(State.SYNCING)),
+    () => [...this.clients].map(({ send }) => send(groupFinal(this.code))))
 
   constructor(
     initiator: Client,

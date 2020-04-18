@@ -67,11 +67,12 @@ export function getProposal(input: Data): Proposal {
 
 // Data sent to the browsers
 
-const enum Code {
+export const enum Code {
   CLIENT_LEAVE,
   CLIENT_JOIN,
   GROUP_REQUEST,
   GROUP_REJECT,
+  GROUP_FINAL,
 }
 
 function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, id: ClientID, name: Name) {
@@ -94,4 +95,11 @@ export const clientJoin = ({ name, id }: Client) => clientPresence(Code.CLIENT_J
 export const clientLeave = ({ name, id }: Client) => clientPresence(Code.CLIENT_LEAVE, id, name!)
 export const groupJoin = (...ids: ClientID[]) => groupChange(Code.GROUP_REQUEST, ...ids)
 export const groupLeave = (...ids: ClientID[]) => groupChange(Code.GROUP_REJECT, ...ids)
+
+export function groupFinal(code: number) {
+  const ret = new DataView(new ArrayBuffer(Size.CHAR + Size.INT))
+  ret.setUint8(0, Code.GROUP_FINAL)
+  ret.setUint32(Size.CHAR, code, true)
+  return ret.buffer
+}
 

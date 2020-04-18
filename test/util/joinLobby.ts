@@ -1,7 +1,6 @@
 import { LobbyID, Name } from '../../src/messages'
 import Server from '../../src/Server'
 import BrowserSocket from './BrowserSocket'
-import { buildIntro } from './builders'
 import { State } from '../../src/Client'
 
 /** 
@@ -18,7 +17,7 @@ export default async function (server: Server, lobby: LobbyID, name: Name) {
     switch (state) {
       case State.CONNECTED:
         await socket.open.event
-        socket.send(buildIntro(lobby, name))
+        socket.sendIntro(lobby, name)
         break
 
       case State.IN_LOBBY:

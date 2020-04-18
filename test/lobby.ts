@@ -3,7 +3,6 @@ import BrowserSocket from './util/BrowserSocket'
 import joinLobby from './util/joinLobby'
 import Server from '../src/Server'
 import { State } from '../src/Client'
-import { buildIntro } from './util/builders'
 
 describe('Lobby', () => {
   let server: Server
@@ -21,7 +20,7 @@ describe('Lobby', () => {
       switch (state) {
         case State.CONNECTED:
           await socket.open.event
-          socket.send(buildIntro(123, '\n\t \r\u200b'))
+          socket.sendIntro(123, '\n\t \r\u200b')
           break
 
         case State.DEAD:

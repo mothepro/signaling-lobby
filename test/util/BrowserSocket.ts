@@ -1,8 +1,11 @@
 import WebSocket, { Data } from 'ws'
+import { TextEncoder } from 'util'
 import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
 import Server from '../../src/Server'
 import { Size } from '../../src/util/constants'
-import { ClientID, Name } from '../../src/messages'
+import { ClientID, Name, LobbyID } from '../../src/messages'
+
+export const encoder = new TextEncoder
 
 // Should match code's sent from server to browsers
 const enum Code {
@@ -66,8 +69,26 @@ export default class {
     this.socket.on('message', this.message.activate)
   }
 
-  readonly send = (data: ArrayBuffer) => this.socket.send(data)
   readonly exit = () => this.socket.close()
+  readonly send = (data: ArrayBuffer) => this.socket.send(data)
+
+  /** Helper to send an intro */
+  sendIntro(lobby: LobbyID, name: string) {
+    const nameBuffer = encoder.encode(name),
+    buf = new DataView(new ArrayBuffer(Size.INT + nameBuffer.byteLength))
+    buf.setInt32(0, lobby, true)
+    new Uint8Array(buf.buffer, Size.INT).set(nameBuffer)
+    this.send(buf.buffer)
+  }
+  
+  /** Helper to send a group proposal */
+  sendProposal(approve: boolean, ...ids: ClientID[]) {
+    const buf = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT * ids.length))
+    buf.setInt8(0, +approve)
+    new Uint8Array(buf.buffer, Size.CHAR).set(new Uint16Array(ids))
+    this.send(buf.buffer)
+  }
+
 
   get readyState() { return this.socket.readyState }
 }

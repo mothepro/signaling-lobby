@@ -1,6 +1,5 @@
 import Server from '../src/Server'
 import joinLobby from './util/joinLobby'
-import { buildProposal } from './util/builders'
 
 describe('Groups', () => {
   let server: Server
@@ -9,14 +8,14 @@ describe('Groups', () => {
 
   afterEach(() => server.close.activate())
 
-  it.only('Propose a group', async () => {
+  it('Propose a group', async () => {
     await server.listening.event
 
     const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
       [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
 
     // propose group
-    mySocket.send(buildProposal(true, otherId))
+    mySocket.sendProposal(true, otherId)
     const { approval, ids } = await otherSocket.groupChange.next
 
     approval.should.be.true()
@@ -31,11 +30,11 @@ describe('Groups', () => {
       [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
 
     // propose group
-    mySocket.send(buildProposal(true, otherId))
+    mySocket.sendProposal(true, otherId)
     await otherSocket.groupChange.next
 
     // leave group
-    mySocket.send(buildProposal(false, otherId))
+    mySocket.sendProposal(false, otherId)
     const { approval, ids } = await otherSocket.groupChange.next
 
     approval.should.be.false()

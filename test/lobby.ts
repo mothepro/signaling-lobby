@@ -4,6 +4,7 @@ import joinLobby from './util/joinLobby'
 import Server from '../src/Server'
 import { State } from '../src/Client'
 import { clientPresence } from './util/parsers'
+import { buildIntro } from './util/builders'
 
 describe('Lobby', () => {
   let server: Server
@@ -11,6 +12,26 @@ describe('Lobby', () => {
   beforeEach(() => server = new Server)
 
   afterEach(() => server.close.activate())
+
+  it('Ignores clients with invalid names', async () => {
+    await server.listening.event
+    const socket = new BrowserSocket(server),
+      client = await server.connection.next
+
+    for await (const state of client.stateChange)
+      switch (state) {
+        case State.CONNECTED:
+          await socket.open.event
+          socket.send(buildIntro(123, '\n\t \r\u200b'))
+          break
+
+        case State.DEAD:
+          client.socket.readyState.should.equal(CLOSED)
+          await socket.close.event
+          return
+      }
+
+  })
 
   it('Ignores non-intros before lobby', async () => {
     await server.listening.event
@@ -34,7 +55,8 @@ describe('Lobby', () => {
   it('Client can connect', async () => {
     await server.listening.event
 
-    const [socket, client] = await joinLobby(server, 123, 'mo')
+    // Zero width chars are removed from the names
+    const [socket, client] = await joinLobby(server, 123, '\n\tmo\r\u200b')
 
     socket.close.triggered.should.be.false()
     socket.readyState.should.eql(OPEN)

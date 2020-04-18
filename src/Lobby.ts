@@ -66,7 +66,7 @@ export default class {
       hash = hashIds(initiator.id, ...ids)
 
     for (const clientId of ids)
-      if (this.clients.has(clientId))
+      if (this.clients.has(clientId) && clientId != initiator.id)
         participants.add(this.clients.get(clientId)!)
       else
         // TODO decide if client should be kicked for this

@@ -31,10 +31,9 @@
     }
 
     function buildProposal(approve, ...ids) {
-      const buf = new ArrayBuffer(1 + 2 * ids.length),
-        view = new DataView(buf)
+      const buf = new ArrayBuffer(1 + 2 * ids.length)
       new Int8Array(buf, 0).set([approve])
-      new Uint16Array(buf, 1).set(ids)
+      new Uint8Array(buf, 1).set(new Uint16Array(ids))
       return buf
     }
 

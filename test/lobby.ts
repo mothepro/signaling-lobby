@@ -50,6 +50,25 @@ describe('Lobby', () => {
       }
   })
 
+  it('Ignores empty messages before lobby', async () => {
+    await server.listening.event
+    const socket = new BrowserSocket(server),
+      client = await server.connection.next
+
+    for await (const state of client.stateChange)
+      switch (state) {
+        case State.CONNECTED:
+          await socket.open.event
+          socket.send(new ArrayBuffer(0))
+          break
+
+        case State.DEAD:
+          client.socket.readyState.should.equal(CLOSED)
+          await socket.close.event
+          return
+      }
+  })
+
   it('Client can connect', async () => {
     await server.listening.event
 

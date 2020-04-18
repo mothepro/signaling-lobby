@@ -1,5 +1,5 @@
 import 'should'
-import WebSocket from 'ws'
+import {OPEN} from 'ws'
 import BrowserSocket from './util/BrowserSocket'
 import Server from '../src/Server'
 
@@ -19,7 +19,7 @@ describe('Server', () => {
 
     // This happens after the server connection completes
     await client.open.event
-    client.readyState.should.eql(WebSocket.OPEN)
+    client.readyState.should.eql(OPEN)
     server.clientCount.should.eql(1)
   })
 

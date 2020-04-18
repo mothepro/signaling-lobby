@@ -76,6 +76,9 @@ export default class {
           break
 
         case State.SYNCING:
+          for (const { id, send } of this.clients)
+            if (id != client.id)
+              send(data as ArrayBuffer)
           break
       }
   }

@@ -1,5 +1,7 @@
 import Server from '../src/Server'
 import joinLobby from './util/joinLobby'
+import { setLevel, Level } from '../src/util/logger'
+import { OutgoingMessage } from 'http'
 
 describe('Groups', () => {
   let server: Server
@@ -93,6 +95,31 @@ describe('Groups', () => {
     join2.should.be.false()
     id1.should.equalOneOf(myId, otherId)
     id2.should.equalOneOf(myId, otherId)
+  })
+
+  it('Send data when group is synced', async () => {
+    await server.listening.event
+    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
+
+    mySocket.sendProposal(true, otherId)
+    otherSocket.sendProposal(true, myId)
+
+    await Promise.all([
+      mySocket.groupFinal.next,
+      otherSocket.groupFinal.next
+    ])
+
+    mySocket.send(new Uint8Array([0xAB, 0xCD, 0xEF]).buffer)
+    const incoming1 = await otherSocket.message.next
+
+    otherSocket.send(new Uint8Array([0x12, 0x34, 0x56, 0x78]).buffer)
+    const incoming0 = await mySocket.message.next
+
+    incoming0.should.be.instanceOf(Buffer)
+    incoming0.should.eql(Buffer.from([0x12, 0x34, 0x56, 0x78]))
+    incoming1.should.be.instanceOf(Buffer)
+    incoming1.should.eql(Buffer.from([0xAB, 0xCD, 0xEF]))
   })
 
   it('be a part of multiple groups')

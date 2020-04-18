@@ -67,18 +67,15 @@ export default class {
         participants.add(this.clients.get(clientId)!)
       else
         return logger(Level.DEBUG, initiator.id, '> tried to add some non-existent members to group', ids)
+    logger(Level.INFO, initiator.id, '> proposed group to include', ids)
 
     try {
-      logger(Level.INFO, initiator.id, '> proposed group to include', ids)
-
       const group = new Group(initiator, participants)
       this.groups.set(hash, group)
-
       await group.ready.event
     } catch (e) {
       logger(Level.DEBUG, 'Group deleted', e)
-    } finally {
-      this.groups.delete(hash)
     }
+    this.groups.delete(hash)
   }
 }

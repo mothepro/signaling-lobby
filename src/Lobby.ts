@@ -11,20 +11,15 @@ export default class {
   /** All the clients */
   readonly clients: Map<ClientID, Client> = new Map
 
-  /**
-   * List of pending groups.
-   * 
-   * Keys are the clients in the suggested group.
-   * Values are the clients who have accepted so far.
-   */
+  /** List of pending groups. */
   private readonly groups: Map<string, Group> = new Map
 
   readonly clientJoin = new SafeEmitter<Client>(
     // Tell everyone else about me
-    client => [...this.clients.values()].map(({ send }) => send(clientJoin(client))),
+    client => [...this.clients].map(([, { send }]) => send(clientJoin(client))),
 
     // Tell me about everyone else
-    ({ send }) => [...this.clients.values()].map(other => send(clientJoin(other))),
+    ({ send }) => [...this.clients].map(([, other]) => send(clientJoin(other))),
 
     // Add new client to list
     client => this.clients.set(client.id, client),
@@ -55,10 +50,8 @@ export default class {
             if (group.clients.has(client))
               group.ready.deactivate(Error(`${client.id} has been disconnected`))
 
-          // Notify for deactivation if the client still 
-          for (const { send, state: otherState } of this.clients.values())
-            if (otherState == State.IN_LOBBY)
-              send(clientLeave(client))
+          // Notify for client leaving on the next tick to allow dead clients to be removed first
+          setImmediate(() => [...this.clients].map(([, { send }]) => send(clientLeave(client))))
 
           return // stop listener, it is done
         }

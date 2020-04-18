@@ -1,7 +1,4 @@
-import { CLOSED } from 'ws'
-import { State } from '../src/Client'
-import { buildIntro } from './util/builders'
-import ClientSocket from "./util/ClientSocket"
+import BrowserSocket from './util/BrowserSocket'
 import Server from '../src/Server'
 
 describe('Lobby', () => {
@@ -13,7 +10,7 @@ describe('Lobby', () => {
 
   it('Ignores non-intros before lobby', async () => {
     await server.listening.event
-    const socket = new ClientSocket(server),
+    const socket = new BrowserSocket(server),
       client = await server.connection.next
 
     for await (const state of client.stateChange)

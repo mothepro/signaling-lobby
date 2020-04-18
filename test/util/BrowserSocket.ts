@@ -7,7 +7,7 @@ export default class {
 
   readonly open = new SafeSingleEmitter
   readonly close = new SingleEmitter
-  readonly message = new SafeEmitter<any>()
+  readonly message = new SafeEmitter<WebSocket.Data>()
 
   constructor(server: Server) {
     this.socket = new WebSocket(`ws://localhost:${server.address.port}`)

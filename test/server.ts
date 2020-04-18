@@ -1,6 +1,6 @@
 import 'should'
 import WebSocket from 'ws'
-import ClientSocket from './util/ClientSocket'
+import ClientSocket from './util/BrowserSocket'
 import Server from '../src/Server'
 import { idleTimeout } from '../src/args'
 

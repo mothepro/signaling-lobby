@@ -42,19 +42,34 @@ describe('Lobby', () => {
     client.name!.should.eql('mo')
   })
 
-  it('Multiple clients are notified on eachother', async () => {
+  it('Multiple clients are notified when joining', async () => {
     await server.listening.event
 
-    const [socket1, client1] = await joinLobby(server, 123, 'mo'),
-      [socket2, client2] = await joinLobby(server, 123, 'momo'),
-      msg1 = clientPresence(await socket1.message.next),
-      msg2 = clientPresence(await socket2.message.next)
+    const [mySocket, myClient] = await joinLobby(server, 123, 'mo'),
+      [otherSocket, otherClient] = await joinLobby(server, 123, 'momo'),
+      msg1 = clientPresence(await mySocket.message.next),
+      msg2 = clientPresence(await otherSocket.message.next)
 
     msg1.join.should.be.true()
     msg2.join.should.be.true()
-    msg1.id.should.eql(client2.id)
-    msg2.id.should.eql(client1.id)
+    msg1.id.should.eql(otherClient.id)
+    msg2.id.should.eql(myClient.id)
     msg1.name.should.eql('momo')
     msg2.name.should.eql('mo')
+  })
+
+  it('Multiple clients are notified when leaving', async () => {
+    await server.listening.event
+
+    const [socket] = await joinLobby(server, 123, 'mo'),
+      [socket2, client2] = await joinLobby(server, 123, 'momo')
+
+    socket2.exit()
+    await client2.stateChange.next
+    const { join, id, name } = clientPresence(await socket.message.next)
+
+    join.should.be.false()
+    id.should.eql(client2.id)
+    name.should.eql('momo')
   })
 })

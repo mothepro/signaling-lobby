@@ -36,7 +36,7 @@ export interface Intro {
 }
 
 // TODO use a STATUS bit to determine data type
-export function getIntro(input: Data): { name: Name, lobby: LobbyID } {
+export function getIntro(input: Data): Intro {
   const data = dataToView(input, 'Introduction', view => view.byteLength > Size.INT)
   return {
     lobby: data.getInt32(0, true),
@@ -75,7 +75,7 @@ const enum Code {
   GROUP_REJECT,
 }
 
-function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, { name, id }: Client) {
+function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, id: ClientID, name: Name) {
   const nameBuffer = encoder.encode(name),
     ret = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT + nameBuffer.byteLength))
   ret.setUint8(0, join)
@@ -84,15 +84,15 @@ function clientPresence(join: Code.CLIENT_LEAVE | Code.CLIENT_JOIN, { name, id }
   return ret.buffer
 }
 
-function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, { clients }: Group) {
-  const ret = new DataView(new ArrayBuffer(Size.CHAR + clients.size * Size.SHORT))
+function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, clients: ClientID[]) {
+  const ret = new DataView(new ArrayBuffer(Size.CHAR + clients.length * Size.SHORT))
   ret.setUint8(0, approval)
-  new Uint16Array(ret.buffer, Size.CHAR).set([...clients].map(({ id }) => id))
+  new Uint16Array(ret.buffer, Size.CHAR).set(clients)
   return ret.buffer
 }
 
-export const clientJoin = (client: Client) => clientPresence(Code.CLIENT_JOIN, client)
-export const clientLeave = (client: Client) => clientPresence(Code.CLIENT_LEAVE, client)
-export const groupJoin = (group: Group) => groupChange(Code.GROUP_REQUEST, group)
-export const groupLeave = (group: Group) => groupChange(Code.GROUP_REJECT, group)
+export const clientJoin = ({ name, id }: Client) => clientPresence(Code.CLIENT_JOIN, id, name!)
+export const clientLeave = ({ name, id }: Client) => clientPresence(Code.CLIENT_LEAVE, id, name!)
+export const groupJoin = ({ clients }: Group) => groupChange(Code.GROUP_REQUEST, [...clients].map(({ id }) => id))
+export const groupLeave = ({ clients }: Group) => groupChange(Code.GROUP_REJECT, [...clients].map(({ id }) => id))
 

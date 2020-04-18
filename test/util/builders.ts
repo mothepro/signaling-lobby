@@ -15,6 +15,6 @@ export function buildIntro(lobby: LobbyID, name: string) {
 export function buildProposal(approve: boolean, ...ids: ClientID[]) {
   const buf = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT * ids.length))
   buf.setInt8(0, +approve)
-  new Uint16Array(buf.buffer, Size.CHAR).set(ids)
+  new Uint8Array(buf.buffer, Size.CHAR).set(new Uint16Array(ids))
   return buf.buffer
 }

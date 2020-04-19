@@ -1,12 +1,12 @@
 import 'should'
-import {OPEN} from 'ws'
+import { OPEN } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
-import Server from '../src/Server'
+import SocketServer from '../src/SocketServer'
 
-describe('Server', () => {
-  let server: Server
+describe('SocketServer', () => {
+  let server: SocketServer
 
-  beforeEach(() => server = new Server({
+  beforeEach(() => server = new SocketServer({
     maxConnections: 10,
     idleTimeout: 1000
   }))

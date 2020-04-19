@@ -1,13 +1,13 @@
 import { CLOSED, OPEN } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
 import joinLobby from './util/joinLobby'
-import Server from '../src/Server'
+import SocketServer from '../src/SocketServer'
 import { State } from '../src/Client'
 
 describe('Lobby', () => {
-  let server: Server
+  let server: SocketServer
 
-  beforeEach(() => server = new Server)
+  beforeEach(() => server = new SocketServer)
 
   afterEach(() => server.close.activate())
 

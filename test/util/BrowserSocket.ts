@@ -1,7 +1,7 @@
 import WebSocket, { Data } from 'ws'
 import { TextEncoder } from 'util'
 import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
-import Server from '../../src/Server'
+import SocketServer from '../../src/SocketServer'
 import { Size } from '../../src/util/constants'
 import { ClientID, Name, LobbyID, Code } from '../../src/messages'
 
@@ -23,7 +23,7 @@ export default class {
               name: data.toString('utf-8', Size.CHAR + Size.SHORT)
             })
           break
-        
+
         case Code.CLIENT_LEAVE:
           if (data.byteLength == Size.CHAR + Size.SHORT)
             this.clientPresence.activate({
@@ -67,7 +67,7 @@ export default class {
   /** Activated when a group finalization message is received. */
   readonly groupFinal = new SafeEmitter<number>()
 
-  constructor(server: Server) {
+  constructor(server: SocketServer) {
     this.socket = new WebSocket(`ws://localhost:${server.address.port}`)
     this.socket.once('open', this.open.activate)
     this.socket.once('close', this.close.activate)

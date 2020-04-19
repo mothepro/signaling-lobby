@@ -65,14 +65,7 @@ export default class {
     this.host.once('listening', this.listening.activate)
     this.host.once('close', this.close.activate)
     this.host.once('error', this.close.deactivate)
-    this.host.on('connection', async (socket: WebSocket) => {
-      if (maxConnections && this.clientCount >= maxConnections) {
-        logger(Level.USEFUL, 'This server is already at its max connections', maxConnections)
-        socket.close()
-        return
-      }
-
-      this.connection.activate(new Client(this.ids.next().value, socket, maxLength, idleTimeout, syncTimeout))
-    })
+    this.host.on('connection', async (socket: WebSocket) =>
+      this.connection.activate(new Client(this.ids.next().value, socket, maxLength, idleTimeout, syncTimeout)))
   }
 }

@@ -1,5 +1,5 @@
 import { LobbyID, Name } from '../../src/messages'
-import Server from '../../src/Server'
+import SocketServer from '../../src/SocketServer'
 import BrowserSocket from './BrowserSocket'
 import { State } from '../../src/Client'
 
@@ -9,7 +9,7 @@ import { State } from '../../src/Client'
  * Note: Do not run in a parallel multiple times (`Promise.all`),
  *  since the client is just the next connection to the server.
  */
-export default async function (server: Server, lobby: LobbyID, name: Name) {
+export default async function (server: SocketServer, lobby: LobbyID, name: Name) {
   const socket = new BrowserSocket(server),
     client = await server.connection.next
 
@@ -21,11 +21,11 @@ export default async function (server: Server, lobby: LobbyID, name: Name) {
         break
 
       case State.IN_LOBBY:
-        return [ socket, client ] as const
+        return [socket, client] as const
 
       default:
         throw Error('Client reached an unexpected state before reaching the lobby')
     }
-  
+
   throw Error('The State emitter should not finish')
 }

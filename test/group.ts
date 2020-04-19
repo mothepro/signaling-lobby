@@ -1,12 +1,12 @@
 import { CLOSED } from 'ws'
-import Server from '../src/Server'
+import SocketServer from '../src/SocketServer'
 import { State } from '../src/Client'
 import joinLobby from './util/joinLobby'
 
 describe('Groups', () => {
-  let server: Server
+  let server: SocketServer
 
-  beforeEach(() => server = new Server({ syncTimeout: 100 }))
+  beforeEach(() => server = new SocketServer({ syncTimeout: 100 }))
 
   afterEach(() => server.close.activate())
 

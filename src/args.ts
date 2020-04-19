@@ -25,7 +25,7 @@ export const {
   .option('max-connections', {
     type: 'number',
     description: 'The max number of connections the server supports',
-    default: 2 ** 16 - 2,
+    default: 2 ** 16,
     demandOption: true,
   })
   .option('idle-timeout', {

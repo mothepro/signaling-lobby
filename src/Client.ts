@@ -34,7 +34,7 @@ export const enum State {
 
 export default class {
   /** Handle to kill this client after timeout. */
-  private timeout = setTimeout(() => this.socket.close(), this.idleTimeout)
+  private timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.idleTimeout)
 
   /** Current state of connection. */
   state = State.ONLINE
@@ -48,10 +48,18 @@ export default class {
   /** Activated when changing state. */
   readonly stateChange: SafeEmitter<State> = new SafeEmitter(
     newState => logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState),
-    newState => newState == this.state && this.failure(Error(`state activated but stayed as ${this.state}`)),
-    newState => this.state = newState, // actually update
-    () => this.state == State.SYNCING && setTimeout(() => this.socket.close(), this.syncTimeout),
-    () => (this.state == State.DEAD || this.state == State.SYNCING) && clearTimeout(this.timeout))
+    // newState => newState == this.state && this.failure(Error(`state activated but stayed as ${this.state}`)),
+    newState => {
+      switch (this.state = newState) {
+        case State.DEAD:
+          this.socket.close()
+        // fall-thru
+          
+        case State.SYNCING:
+          clearTimeout(this.timeout)
+          setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
+      }
+    })
 
   /** Activated when the client talks to the server. */
   readonly message: SafeEmitter<WebSocket.Data> = new SafeEmitter(

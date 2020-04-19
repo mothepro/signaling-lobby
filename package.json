@@ -7,8 +7,6 @@
   "main": "dist/npm/index.js",
   "bin": "dist/npm/index.js",
   "sideEffects": false,
-  "type": "module",
-  "module": "dist/esm/index.js",
   "files": [
     "dist"
   ],

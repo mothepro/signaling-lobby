@@ -6,7 +6,6 @@ export const {
   port,
   'max-length': maxLength,
   'max-connections': maxConnections,
-  'max-payload': maxPayload,
   'idle-timeout': idleTimeout,
   'sync-timeout': syncTimeout,
 } = strict()
@@ -25,13 +24,6 @@ export const {
     type: 'number',
     description: 'The max number of connections the server supports',
     default: 2 ** 16 - 2,
-    demandOption: true,
-  })
-  .option('max-payload', {
-    type: 'number',
-    description: 'The max length of a user\'s message',
-    defaultDescription: 'A kilobyte',
-    default: 2 ** 10,
     demandOption: true,
   })
   .option('idle-timeout', {

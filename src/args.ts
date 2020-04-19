@@ -4,6 +4,8 @@ import { version, name, description } from '../package.json'
 export const {
   verbose,
   port,
+  key,
+  cert,
   'max-length': maxLength,
   'max-connections': maxConnections,
   'idle-timeout': idleTimeout,
@@ -49,5 +51,13 @@ export const {
     defaultDescription: 'A random free port',
     default: 0,
     demandOption: true,
+  })
+  .option('key', {
+    type: 'string',
+    description: 'Path to the public key to use (Only for a secure server)',
+  })
+  .option('cert', {
+    type: 'string',
+    description: 'Path to the certificate to use (Only for a secure server)',
   })
     .argv

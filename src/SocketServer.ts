@@ -55,7 +55,7 @@ export default class {
     idleTimeout: number,
     syncTimeout: number,
   ) {
-  /** The underlying WebSocket server */
+    /** The underlying WebSocket server */
     const webSocketServer = new WebSocket.Server({ noServer: true })
 
     this.close.event.finally(() => webSocketServer.close())

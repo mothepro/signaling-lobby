@@ -10,6 +10,8 @@
 
 Run the server `npx @mothepro/signaling-lobby` and use the following options to control it.
 
+TODO turn to table
+
 ```txt
 Options:
   --verbose, -v       Verbosity                                          [count]
@@ -32,6 +34,39 @@ Options:
   --cert              Path to the certificate to use (Only for a secure server)
                                                                         [string]
 ```
+
+Run the server (In `sudo` to have access to the `*.pem` files) using the following
+The `hostname` (`-h`) should be the external IP.
+
+```shell
+sudo npx @mothepro/signaling-lobby -vvvvv \
+-p 9000 \
+--key /etc/letsencrypt/live/ws.parkshade.com/privkey.pem \
+--cert /etc/letsencrypt/live/ws.parkshade.com/fullchain.pem
+```
+
+### EC2
+
+Create a cert with `letsencrypt`
+
+Install
+
+```shell
+sudo yum-config-manager --enable rhui-REGION-rhel-server-extras rhui-REGION-rhel-server-optional
+sudo yum install certbot python2-certbot-apache
+sudo yum -y install yum-utils
+sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+```
+
+Run it...
+
+If `sudo npx` doesn't work run
+
+```shell
+sudo ln ~/.nvm/versions/node/<version>/bin/* -s /usr/bin
+```
+
+Make a security group that makes that port available.
 
 ## Roadmap
 

@@ -3,6 +3,7 @@ import { version, name, description } from '../package.json'
 
 export const {
   verbose,
+  hostname,
   port,
   key,
   cert,
@@ -44,10 +45,17 @@ export const {
     default: 2 * 60 * 1000,
     demandOption: true,
   })
+  .option('hostname', {
+    alias: 'h',
+    type: 'string',
+    description: 'The hostname to this server is running on',
+    default: 'localhost',
+    demandOption: true,
+  })
   .option('port', {
     alias: 'p',
     type: 'number',
-    description: 'The port to host this server on',
+    description: 'The port this server is running on',
     defaultDescription: 'A random free port',
     default: 0,
     demandOption: true,

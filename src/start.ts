@@ -9,6 +9,7 @@ const readFileAsync = promisify(readFile)
 
 export default async function (
   level = Level.SEVERE,
+  hostname: string,
   port: number,
   maxConnections: number,
   maxLength: number,
@@ -22,10 +23,10 @@ export default async function (
 
     const server = keyPath && certPath
       ? createServer({
-        key: await readFileAsync(keyPath, { encoding: 'utf-8' }),
-        cert: await readFileAsync(certPath, { encoding: 'utf-8' }),
-      }).listen(port)
-      : createUnsecureServer().listen(port),
+          key: await readFileAsync(keyPath, { encoding: 'utf-8' }),
+          cert: await readFileAsync(certPath, { encoding: 'utf-8' }),
+        }).listen(port, hostname)
+      : createUnsecureServer().listen(port, hostname),
       socketServer = new SocketServer(server, maxConnections, maxLength, idleTimeout, syncTimeout)
 
     await socketServer.ready.event

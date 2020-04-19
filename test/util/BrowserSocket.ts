@@ -1,9 +1,9 @@
-import WebSocket, { Data } from 'ws'
+import WebSocket, { Data, AddressInfo } from 'ws'
 import { TextEncoder } from 'util'
 import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
-import SocketServer from '../../src/SocketServer'
 import { Size } from '../../src/util/constants'
 import { ClientID, Name, LobbyID, Code } from '../../src/messages'
+import { Server } from 'http'
 
 export const encoder = new TextEncoder
 
@@ -67,12 +67,16 @@ export default class {
   /** Activated when a group finalization message is received. */
   readonly groupFinal = new SafeEmitter<number>()
 
-  constructor(server: SocketServer) {
-    this.socket = new WebSocket(`ws://localhost:${server.address.port}`)
+  constructor(server: Server) {
+    this.socket = new WebSocket(`ws://localhost:${(server.address()! as AddressInfo).port}`)
     this.socket.once('open', this.open.activate)
     this.socket.once('close', this.close.activate)
     this.socket.once('error', this.close.deactivate)
     this.socket.on('message', this.message.activate)
+    this.close.event.catch(err => {
+      if (err.code != 'ECONNRESET') // Swallow 'hang ups' due to server disconnection
+        throw err
+    })
   }
 
   readonly exit = () => this.socket.close()

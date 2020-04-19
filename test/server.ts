@@ -2,20 +2,19 @@ import 'should'
 import { OPEN } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
 import SocketServer from '../src/SocketServer'
+import { createServer, Server } from 'http'
 
-describe('SocketServer', () => {
-  let server: SocketServer
+describe('Server', () => {
+  let server: SocketServer,
+    http: Server
 
-  beforeEach(() => server = new SocketServer({
-    maxConnections: 10,
-    idleTimeout: 1000
-  }))
+  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 1000, 100))
 
-  afterEach(() => server.close.activate())
+  afterEach(() => http.close())
 
   it('Clients can connect', async () => {
-    await server.listening.event
-    const client = new BrowserSocket(server)
+    await server.ready.event
+    const client = new BrowserSocket(http)
 
     // This happens after the server connection completes
     await client.open.event
@@ -24,21 +23,20 @@ describe('SocketServer', () => {
   })
 
   it('Respects max connections', async () => {
-    await server.listening.event
-    const clients = new Array(10)
-      .fill(undefined)
-      .map(() => new BrowserSocket(server))
+    await server.ready.event
+    const clients = new Array(10).fill(undefined)
+      .map(() => new BrowserSocket(http))
 
     // all clients must be connected
     await Promise.all(clients.map(client => client.open.event))
 
     // push the limit
-    const overflow = new BrowserSocket(server)
-    await overflow.open.event
+    const overflow = new BrowserSocket(http)
 
-    // no increase
+    // socket hang up thrown
+    overflow.close.event.should.be.rejected()
+    overflow.open.triggered.should.be.false()
     server.clientCount.should.eql(10)
-    await overflow.close.event
 
     // other clients stay open
     for (const { close } of clients)
@@ -46,9 +44,9 @@ describe('SocketServer', () => {
   })
 
   it('Idlers are kicked', async () => {
-    await server.listening.event
+    await server.ready.event
 
-    const client = new BrowserSocket(server)
+    const client = new BrowserSocket(http)
     await client.open.event
     setTimeout(() => {
       client.close.triggered.should.be.true()

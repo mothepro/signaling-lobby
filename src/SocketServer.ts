@@ -6,24 +6,23 @@ import Lobby from './Lobby'
 import openId from './util/openId'
 import logger, { Level } from './util/logger'
 import { Max } from './util/constants'
+import { Server } from 'http'
 
 // TODO add DoS prevention use
 export default class {
 
+  /** Clients that have yet to join a lobby. */
   readonly pendingClients: Set<Client> = new Set
 
+  /** Map that points to all the lobbies with clients still in it. */
   readonly lobbies: Map<LobbyID, Lobby> = new Map
-
-  /** The web server */
-  // TODO potenetially using 'headers' event and & shouldHandle method
-  private readonly host: WebSocket.Server
 
   /** Create available IDs for the clients */
   private readonly ids = openId(Max.SHORT)
 
-  readonly listening = new SafeSingleEmitter(() => logger(Level.USEFUL, 'Signaling server initiated', this.host.address()))
+  readonly ready = new SafeSingleEmitter
 
-  readonly close = new SingleEmitter(() => logger(Level.USEFUL, 'Shutting down the signaling server'))
+  readonly close = new SingleEmitter
 
   readonly connection = new SafeEmitter<Client>(
     client => this.pendingClients.add(client),
@@ -49,23 +48,28 @@ export default class {
   /** Number of clients in this server, both bound and unbound to a lobby. */
   get clientCount() { return [...this.lobbies].reduce((prev, [, { clientCount }]) => prev + clientCount, this.pendingClients.size) }
 
-  get address() { return this.host.address() as WebSocket.AddressInfo }
+  constructor(
+    server: Server,
+    maxConnections: number,
+    maxLength: number,
+    idleTimeout: number,
+    syncTimeout: number,
+  ) {
+  /** The underlying WebSocket server */
+    const webSocketServer = new WebSocket.Server({ noServer: true })
 
-  constructor({
-    port = 0,
-    maxPayload = 100,
-    maxConnections = 5,
-    maxLength = 20,
-    idleTimeout = 60 * 1000,
-    syncTimeout = 60 * 1000,
-  } = {}) {
-    this.host = new WebSocket.Server({ port, backlog: 0, maxPayload, clientTracking: false, perMessageDeflate: false })
-    this.close.event.catch(err => logger(Level.SEVERE, 'An error occurred with the signaling server', err) && this.host.close())
+    this.close.event.finally(() => webSocketServer.close())
+    server.once('listening', this.ready.activate)
+    server.once('close', this.close.activate)
+    server.once('error', this.close.deactivate)
 
-    this.host.once('listening', this.listening.activate)
-    this.host.once('close', this.close.activate)
-    this.host.once('error', this.close.deactivate)
-    this.host.on('connection', async (socket: WebSocket) =>
-      this.connection.activate(new Client(this.ids.next().value, socket, maxLength, idleTimeout, syncTimeout)))
+    server.on('upgrade', (request, socket, head) => {
+      if (maxConnections && this.clientCount >= maxConnections) {
+        logger(Level.USEFUL, 'This server is already at its max connections', maxConnections)
+        socket.destroy()
+      } else
+        webSocketServer.handleUpgrade(request, socket, head, webSocket =>
+          this.connection.activate(new Client(this.ids.next().value, webSocket as WebSocket, maxLength, idleTimeout, syncTimeout)))
+    })
   }
 }

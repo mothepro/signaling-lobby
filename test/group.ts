@@ -2,18 +2,19 @@ import { CLOSED } from 'ws'
 import SocketServer from '../src/SocketServer'
 import { State } from '../src/Client'
 import joinLobby from './util/joinLobby'
+import { createServer, Server } from 'http'
 
 describe('Groups', () => {
-  let server: SocketServer
+  let server: SocketServer,
+  http: Server
 
-  beforeEach(() => server = new SocketServer({ syncTimeout: 100 }))
-
-  afterEach(() => server.close.activate())
+  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 1000, 100))
+  afterEach(() => http.close())
 
   it('Propose a group', async () => {
-    await server.listening.event
-    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
+    await server.ready.event
+    const [mySocket, { id: myId }] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 123, 'momo')
 
     // propose group
     mySocket.sendProposal(true, otherId)
@@ -25,9 +26,9 @@ describe('Groups', () => {
   })
 
   it('Group shut down after by data sent', async () => {
-    await server.listening.event
-    const [mySocket, myClient] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, { id }] = await joinLobby(server, 123, 'momo')
+    await server.ready.event
+    const [mySocket, myClient] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, { id }] = await joinLobby(http, server, 123, 'momo')
 
     mySocket.sendProposal(true, id)
     await otherSocket.groupChange.next
@@ -43,9 +44,9 @@ describe('Groups', () => {
   })
 
   it('Can leave a group', async () => {
-    await server.listening.event
-    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
+    await server.ready.event
+    const [mySocket, { id: myId }] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 123, 'momo')
 
     // propose group
     mySocket.sendProposal(true, otherId)
@@ -61,9 +62,9 @@ describe('Groups', () => {
   })
 
   it('Can leave a group after proposal', async () => {
-    await server.listening.event
-    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
+    await server.ready.event
+    const [mySocket, { id: myId }] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 123, 'momo')
 
     // propose group
     mySocket.sendProposal(true, otherId)
@@ -79,9 +80,9 @@ describe('Groups', () => {
   })
 
   it('Form a group', async () => {
-    await server.listening.event
-    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
+    await server.ready.event
+    const [mySocket, { id: myId }] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 123, 'momo')
 
     mySocket.sendProposal(true, otherId)
     otherSocket.sendProposal(true, myId)
@@ -97,10 +98,10 @@ describe('Groups', () => {
   })
 
   it('Notify lobby clients when group is formed', async () => {
-    await server.listening.event
-    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo'),
-      [guestSocket] = await joinLobby(server, 123, 'lamo')
+    await server.ready.event
+    const [mySocket, { id: myId }] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 123, 'momo'),
+      [guestSocket] = await joinLobby(http, server, 123, 'lamo')
 
     mySocket.sendProposal(true, otherId)
     otherSocket.sendProposal(true, myId)
@@ -116,9 +117,9 @@ describe('Groups', () => {
   })
 
   it('Send data when group is synced', async () => {
-    await server.listening.event
-    const [mySocket, { id: myId }] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, { id: otherId }] = await joinLobby(server, 123, 'momo')
+    await server.ready.event
+    const [mySocket, { id: myId }] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 123, 'momo')
 
     mySocket.sendProposal(true, otherId)
     otherSocket.sendProposal(true, myId)
@@ -141,9 +142,9 @@ describe('Groups', () => {
   })
 
   it('Eventually the group shall elegantly close', async () => {
-    await server.listening.event
-    const [mySocket, myClient] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, otherClient] = await joinLobby(server, 123, 'momo')
+    await server.ready.event
+    const [mySocket, myClient] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, otherClient] = await joinLobby(http, server, 123, 'momo')
 
     mySocket.sendProposal(true, otherClient.id)
     otherSocket.sendProposal(true, myClient.id)
@@ -166,10 +167,10 @@ describe('Groups', () => {
   })
 
   it('leaves all other groups once syncing', async () => {
-    await server.listening.event
-    const [socket0, client0] = await joinLobby(server, 123, 'mo'),
-      [socket1, client1] = await joinLobby(server, 123, 'momo'),
-      [socket2] = await joinLobby(server, 123, 'mothepro')
+    await server.ready.event
+    const [socket0, client0] = await joinLobby(http, server, 123, 'mo'),
+      [socket1, client1] = await joinLobby(http, server, 123, 'momo'),
+      [socket2] = await joinLobby(http, server, 123, 'mothepro')
 
     socket0.sendProposal(true, client1.id)
     socket2.sendProposal(true, client0.id)

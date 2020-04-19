@@ -2,6 +2,7 @@ import { LobbyID, Name } from '../../src/messages'
 import SocketServer from '../../src/SocketServer'
 import BrowserSocket from './BrowserSocket'
 import { State } from '../../src/Client'
+import { Server } from 'http'
 
 /** 
  * Helper to connect a client to a lobby
@@ -9,8 +10,8 @@ import { State } from '../../src/Client'
  * Note: Do not run in a parallel multiple times (`Promise.all`),
  *  since the client is just the next connection to the server.
  */
-export default async function (server: SocketServer, lobby: LobbyID, name: Name) {
-  const socket = new BrowserSocket(server),
+export default async function (http: Server, server: SocketServer, lobby: LobbyID, name: Name) {
+  const socket = new BrowserSocket(http),
     client = await server.connection.next
 
   for await (const state of client.stateChange)

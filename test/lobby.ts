@@ -3,17 +3,19 @@ import BrowserSocket from './util/BrowserSocket'
 import joinLobby from './util/joinLobby'
 import SocketServer from '../src/SocketServer'
 import { State } from '../src/Client'
+import { createServer, Server } from 'http'
 
 describe('Lobby', () => {
-  let server: SocketServer
+  let server: SocketServer,
+  http: Server
 
-  beforeEach(() => server = new SocketServer)
+  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 1000, 100))
 
-  afterEach(() => server.close.activate())
+  afterEach(() => http.close())
 
   it('Ignores clients with invalid names', async () => {
-    await server.listening.event
-    const socket = new BrowserSocket(server),
+    await server.ready.event
+    const socket = new BrowserSocket(http),
       client = await server.connection.next
 
     for await (const state of client.stateChange)
@@ -32,8 +34,8 @@ describe('Lobby', () => {
   })
 
   it('Ignores non-intros before lobby', async () => {
-    await server.listening.event
-    const socket = new BrowserSocket(server),
+    await server.ready.event
+    const socket = new BrowserSocket(http),
       client = await server.connection.next
 
     for await (const state of client.stateChange)
@@ -51,8 +53,8 @@ describe('Lobby', () => {
   })
 
   it('Ignores empty messages before lobby', async () => {
-    await server.listening.event
-    const socket = new BrowserSocket(server),
+    await server.ready.event
+    const socket = new BrowserSocket(http),
       client = await server.connection.next
 
     for await (const state of client.stateChange)
@@ -70,10 +72,10 @@ describe('Lobby', () => {
   })
 
   it('Client can connect', async () => {
-    await server.listening.event
+    await server.ready.event
 
     // Zero width chars are removed from the names
-    const [socket, client] = await joinLobby(server, 123, '\n\tmo\r\u200b')
+    const [socket, client] = await joinLobby(http, server, 123, '\n\tmo\r\u200b')
 
     socket.close.triggered.should.be.false()
     socket.readyState.should.eql(OPEN)
@@ -82,10 +84,10 @@ describe('Lobby', () => {
   })
 
   it('Multiple clients are notified when joining', async () => {
-    await server.listening.event
+    await server.ready.event
 
-    const [mySocket, myClient] = await joinLobby(server, 123, 'mo'),
-      [otherSocket, otherClient] = await joinLobby(server, 123, 'momo'),
+    const [mySocket, myClient] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, otherClient] = await joinLobby(http, server, 123, 'momo'),
       msg1 = await mySocket.clientPresence.next,
       msg2 = await otherSocket.clientPresence.next
 
@@ -98,10 +100,10 @@ describe('Lobby', () => {
   })
 
   it('Multiple clients are notified when leaving', async () => {
-    await server.listening.event
+    await server.ready.event
 
-    const [socket] = await joinLobby(server, 123, 'mo'),
-      [socket2, client2] = await joinLobby(server, 123, 'momo')
+    const [socket] = await joinLobby(http, server, 123, 'mo'),
+      [socket2, client2] = await joinLobby(http, server, 123, 'momo')
 
     socket2.exit()
     await client2.stateChange.next

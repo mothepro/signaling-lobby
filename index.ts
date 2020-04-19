@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-import { setLevel } from './src/util/logger'
-import { verbose, port, maxLength, maxConnections, maxPayload, idleTimeout, syncTimeout } from './src/args'
-import Server from './src/Server'
+import { verbose, port, maxLength, maxConnections, idleTimeout, syncTimeout } from './src/args'
+import http from './src/http'
 
-setLevel(verbose)
-new Server({ port, maxPayload, maxConnections, maxLength, idleTimeout, syncTimeout })
+http(verbose, port, maxLength, maxConnections, idleTimeout, syncTimeout)

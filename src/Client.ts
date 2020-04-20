@@ -54,10 +54,12 @@ export default class {
         case State.DEAD:
           this.socket.close()
         // fall-thru
-          
+
         case State.SYNCING:
           clearTimeout(this.timeout)
-          setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
+
+          if (this.state != State.DEAD) // why aren't switch statements better... smh
+            this.timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
       }
     })
 
@@ -98,7 +100,8 @@ export default class {
   }
 
   send = async (message: ArrayBuffer | SharedArrayBuffer) =>
-    logger(Level.TRANSFER, this.id, '<', message)
+    (this.state == State.CONNECTED || this.state == State.IN_LOBBY || this.state == State.SYNCING)
+    && logger(Level.TRANSFER, this.id, '<', message)
     && new Promise(resolve => this.socket.send(message, {}, resolve))
 
   failure = (err: Error) =>

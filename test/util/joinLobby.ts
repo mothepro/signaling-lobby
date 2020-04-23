@@ -1,8 +1,8 @@
+import { Server } from 'http'
 import { LobbyID, Name } from '../../src/messages'
 import SocketServer from '../../src/SocketServer'
-import BrowserSocket from './BrowserSocket'
 import { State } from '../../src/Client'
-import { Server } from 'http'
+import BrowserSocket from './BrowserSocket'
 
 /** 
  * Helper to connect a client to a lobby

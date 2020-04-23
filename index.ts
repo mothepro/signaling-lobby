@@ -1,4 +1,5 @@
-export type { ClientID, LobbyID, Name, Code } from './src/messages'
+export { ClientID, LobbyID, Name, Code } from './src/messages'
+export { Size, Max } from './util/constants'
 export { default as SocketServer } from './src/SocketServer'
 export { default as Client, State } from './src/Client'
 export { default as Group } from './src/Group'

@@ -1,5 +1,5 @@
-#!/usr/bin/env node
-import { verbose, hostname, port, maxLength, maxConnections, idleTimeout, syncTimeout, key, cert } from './src/args'
-import start from './src/start'
-
-start(verbose, hostname, port, maxLength, maxConnections, idleTimeout, syncTimeout, key, cert)
+export type { ClientID, LobbyID, Name, Code } from './src/messages'
+export { default as SocketServer } from './src/SocketServer'
+export { default as Client, State } from './src/Client'
+export { default as Group } from './src/Group'
+export { default as Lobby } from './src/Lobby'

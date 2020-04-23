@@ -5,7 +5,7 @@
   "version": "0.0.3",
   "license": "Apache-2.0",
   "main": "dist/npm/index.js",
-  "bin": "dist/npm/index.js",
+  "bin": "dist/npm/bin/index.js",
   "sideEffects": false,
   "files": [
     "dist"
@@ -21,7 +21,7 @@
     "prerelease": "npm run build",
     "release": "np",
     "prestart": "npm run build",
-    "start": "node ./dist/npm/index.js"
+    "start": "node ./dist/npm/bin/index.js"
   },
   "devDependencies": {
     "@types/mocha": "^7.0.2",

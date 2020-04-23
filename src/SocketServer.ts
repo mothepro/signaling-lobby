@@ -3,9 +3,9 @@ import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
 import Client, { State } from './Client'
 import { LobbyID } from './messages'
 import Lobby from './Lobby'
-import openId from './util/openId'
-import logger, { Level } from './util/logger'
-import { Max } from './util/constants'
+import openId from '../util/openId'
+import logger, { Level } from '../util/logger'
+import { Max } from '../util/constants'
 import { Server } from 'http'
 
 // TODO add DoS prevention use

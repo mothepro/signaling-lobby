@@ -1,6 +1,6 @@
 import Client, { State } from './Client'
 import { SafeEmitter } from 'fancy-emitter'
-import logger, { Level } from './util/logger'
+import logger, { Level } from '../util/logger'
 import Group from './Group'
 import { getProposal, ClientID, clientJoin, clientLeave } from './messages'
 

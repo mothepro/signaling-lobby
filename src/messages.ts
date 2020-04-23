@@ -1,7 +1,7 @@
 import { Data } from 'ws'
 import { TextEncoder, TextDecoder } from 'util'
-import stringSantizer from './util/stringSantizer'
-import { Size } from './util/constants'
+import stringSantizer from '../util/stringSantizer'
+import { Size } from '../util/constants'
 import Client from './Client'
 
 const encoder = new TextEncoder

@@ -1,8 +1,8 @@
 import { SingleEmitter } from 'fancy-emitter'
 import { ClientID, getProposal, groupJoin, groupLeave, groupFinal } from './messages'
 import Client, { State } from './Client'
-import logger, { Level } from './util/logger'
-import { Max } from './util/constants'
+import logger, { Level } from '../util/logger'
+import { Max } from '../util/constants'
 
 export default class {
 

@@ -1,7 +1,7 @@
 import * as WebSocket from 'ws'
 import { SafeEmitter } from 'fancy-emitter'
 import { Name, LobbyID, getIntro } from './messages'
-import logger, { Level } from './util/logger'
+import logger, { Level } from '../util/logger'
 
 export const enum State {
   /** Client that has just successfully initiated a connection. */

@@ -2,8 +2,8 @@ import { readFile } from 'fs'
 import { promisify } from 'util'
 import { createServer } from 'https'
 import { createServer as createUnsecureServer } from 'http'
-import logger, { Level, setLevel } from './util/logger'
-import SocketServer from './SocketServer'
+import logger, { Level, setLevel } from '../util/logger'
+import SocketServer from '../src/SocketServer'
 
 const readFileAsync = promisify(readFile)
 

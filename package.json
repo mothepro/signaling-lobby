@@ -2,7 +2,7 @@
   "name": "@mothepro/signaling-lobby",
   "description": "A simple lobby system which is used as a signaling server for peer-to-peer connections.",
   "author": "Maurice Prosper",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "Apache-2.0",
   "main": "dist/npm/index.js",
   "bin": "dist/npm/bin/index.js",

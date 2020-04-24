@@ -79,9 +79,13 @@ export default class {
           break
 
         case State.SYNCING:
+          const view = new DataView(data as ArrayBuffer),
+            to = view.getUint16(0, true)
+          view.setUint16(0, client.id, true)
+            
           for (const { id, send } of this.clients)
-            if (id != client.id)
-              send(data as ArrayBuffer)
+            if (id == to && to != client.id)
+              send(view.buffer)
           break
       }
   }

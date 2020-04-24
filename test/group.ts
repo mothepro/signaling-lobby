@@ -116,7 +116,7 @@ describe('Groups', () => {
     id2.should.equalOneOf(myId, otherId)
   })
 
-  it('Send data when group is synced', async () => {
+  it('Send data directly when group is synced', async () => {
     await server.ready.event
     const [mySocket, { id: myId }] = await joinLobby(http, server, 123, 'mo'),
       [otherSocket, { id: otherId }] = await joinLobby(http, server, 123, 'momo')
@@ -129,16 +129,19 @@ describe('Groups', () => {
       otherSocket.groupFinal.next
     ])
 
-    mySocket.send(new Uint8Array([0xAB, 0xCD, 0xEF]).buffer)
-    const incoming1 = await otherSocket.message.next
+    const otherDM = new Uint16Array([otherId, 0xABCD, 0xEF]),
+      myDM = new Uint16Array([myId, 0x1234, 0x5678])
 
-    otherSocket.send(new Uint8Array([0x12, 0x34, 0x56, 0x78]).buffer)
-    const incoming0 = await mySocket.message.next
+    mySocket.send(otherDM)
+    const otherMessage = await otherSocket.message.next
 
-    incoming0.should.be.instanceOf(Buffer)
-    incoming0.should.eql(Buffer.from([0x12, 0x34, 0x56, 0x78]))
-    incoming1.should.be.instanceOf(Buffer)
-    incoming1.should.eql(Buffer.from([0xAB, 0xCD, 0xEF]))
+    otherSocket.send(myDM)
+    const myMessage = await mySocket.message.next
+
+    myMessage.should.be.instanceOf(Buffer)
+    myMessage.should.eql(Buffer.from(myDM))
+    otherMessage.should.be.instanceOf(Buffer)
+    otherMessage.should.eql(Buffer.from(otherDM))
   })
 
   it('Eventually the group shall elegantly close', async () => {

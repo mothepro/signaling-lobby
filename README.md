@@ -2,54 +2,29 @@
 
 > A simple lobby system which is used as a signaling server for peer-to-peer connections.
 
-## Install
-
-`yarn add @mothepro/signaling-lobby`
-
 ## How to Use
 
 Run the server `npx @mothepro/signaling-lobby` and use the following options to control it.
 
-TODO turn to table
+Flag | Alias | Type | Default | Description
+-----|-------|------|-------------|--------
+`version` | | `boolean` | | Show the version number
+`help` | | `boolean` | | Show help
+`verbose` | `v` | `count` | None | Verbosity (`-vvvvv` is most verbose)
+`hostname` | `h` | `string` | localhost | The hostname to this server is running on
+`port` | `p` | `number` | A random free port | The port to host this server on
+`max-length` | | `number` | `15` | The max length of a client's name
+`max-connections` | | `number` | `65534` | The max number of connections the server supports. `65534` is the max supported
+`idle-timeout` | `i` | `number` | `20` minutes | The number of milliseconds a client can be connected to the server without joining a group
+`sync-timeout` | `s` | `number` | `30` seconds | The number of milliseconds a client will be connected to the server once syncing is complete
+`key` | | `string` | None | Path to the public key to use (Only for a secure server)
+`cert` | | `string` | None | Path to the certificate to use (Only for a secure server)
 
-```txt
-Options:
-  --verbose, -v       Verbosity                                          [count]
-  --version           Show version number                              [boolean]
-  --help              Show help                                        [boolean]
-  --max-length        The max length of a user's name
-                                               [number] [required] [default: 15]
-  --max-connections   The max number of connections the server supports
-                                            [number] [required] [default: 65534]
-  --idle-timeout, -i  The number of milliseconds a client can be connected to
-                      the server without joining a group
-                                       [number] [required] [default: 20 minutes]
-  --sync-timeout, -s  The number of milliseconds a client will be connected to
-                      the server once syncing is complete
-                                        [number] [required] [default: 2 minutes]
-  --port, -p          The port to host this server on
-                               [number] [required] [default: A random free port]
-  --key               Path to the public key to use (Only for a secure server)
-                                                                        [string]
-  --cert              Path to the certificate to use (Only for a secure server)
-                                                                        [string]
-```
+## EC2
 
-Run the server (In `sudo` to have access to the `*.pem` files) using the following
-The `hostname` (`-h`) should be the external IP.
+First, to support a secure server, create a key & cert pair with `letsencrypt`
 
-```shell
-sudo npx @mothepro/signaling-lobby -vvvvv \
--p 9000 \
---key /etc/letsencrypt/live/ws.parkshade.com/privkey.pem \
---cert /etc/letsencrypt/live/ws.parkshade.com/fullchain.pem
-```
-
-### EC2
-
-Create a cert with `letsencrypt`
-
-Install
+Install with the following commandds
 
 ```shell
 sudo yum-config-manager --enable rhui-REGION-rhel-server-extras rhui-REGION-rhel-server-optional
@@ -58,15 +33,30 @@ sudo yum -y install yum-utils
 sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 ```
 
-Run it...
+Make a security group that makes the `port` to use available.
 
-If `sudo npx` doesn't work run
+Finally, Run the server and set the `hostname` (`-h`) to the external IP.
+
+```shell
+npx @mothepro/signaling-lobby -vvvvv \
+-h ... \
+-p 9000 \
+--key /etc/letsencrypt/live/ws.parkshade.com/privkey.pem \
+--cert /etc/letsencrypt/live/ws.parkshade.com/fullchain.pem
+```
+
+If access to the `*.pem` files is restricted the server be run in `sudo` mode.
+This can be enabled with the following command, because by default `sudo npx` doesn't work run, `npx` must be in the `/usr/bin` path.
 
 ```shell
 sudo ln ~/.nvm/versions/node/<version>/bin/* -s /usr/bin
 ```
 
-Make a security group that makes that port available.
+## Install
+
+The Socket Server is exposed as an NPM module so it can be imported to allow for customizations.
+
+`yarn add @mothepro/signaling-lobby`
 
 ## Roadmap
 

@@ -129,19 +129,20 @@ describe('Groups', () => {
       otherSocket.groupFinal.next
     ])
 
-    const otherDM = new Uint16Array([otherId, 0xABCD, 0xEF]),
-      myDM = new Uint16Array([myId, 0x1234, 0x5678])
-
-    mySocket.send(otherDM)
+    // I DM other some letters
+    mySocket.send(new Uint16Array([otherId, 0xABCD, 0xEF]))
     const otherMessage = await otherSocket.message.next
 
-    otherSocket.send(myDM)
+    // Other DMs me some numbers
+    otherSocket.send(new Uint16Array([myId, 0x1234, 0x5678]))
     const myMessage = await mySocket.message.next
 
+    // I receive numbers from other
     myMessage.should.be.instanceOf(Buffer)
-    myMessage.should.eql(Buffer.from(myDM))
+    myMessage.should.eql(Buffer.from(new Uint16Array([otherId, 0x1234, 0x5678]).buffer))
+    // Other receives letters from me
     otherMessage.should.be.instanceOf(Buffer)
-    otherMessage.should.eql(Buffer.from(otherDM))
+    otherMessage.should.eql(Buffer.from(new Uint16Array([myId, 0xABCD, 0xEF]).buffer))
   })
 
   it('Eventually the group shall elegantly close', async () => {

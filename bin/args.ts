@@ -41,8 +41,8 @@ export const {
     alias: 's',
     type: 'number',
     description: 'The number of milliseconds a client will be connected to the server once syncing is complete',
-    defaultDescription: '2 minutes',
-    default: 2 * 60 * 1000,
+    defaultDescription: '30 seconds',
+    default: 30 * 1000,
     demandOption: true,
   })
   .option('hostname', {

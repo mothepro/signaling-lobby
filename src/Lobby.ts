@@ -48,11 +48,6 @@ export default class {
         if (state == State.DEAD || state == State.SYNCING) {
           this.clients.delete(client.id)
 
-          // Leave groups
-          for (const group of this.groups.values())
-            if (group.clients.has(client))
-              group.ready.deactivate(Error(`${client.id} has been disconnected`))
-
           // Notify for client leaving on the next tick to allow dead clients to be removed first
           setImmediate(() => [...this.clients].map(([, { send }]) => send(clientLeave(client))))
 

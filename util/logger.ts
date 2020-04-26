@@ -8,7 +8,7 @@ export const enum Level {
   TRANSFER,
 }
 
-export const setLevel = (level: Level | number) => globalLevel = level
+export const setLevel = (level: Level) => globalLevel = level
 
 export default (level: Level, ...args: unknown[]) => globalLevel >= level
   && console.log(...args)

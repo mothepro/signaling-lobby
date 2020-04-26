@@ -4,6 +4,14 @@ import Client, { State } from './Client'
 import logger, { Level } from '../util/logger'
 import { Max } from '../util/constants'
 
+class LeaveGroupError extends Error {
+  constructor(
+    /** ID of the client who causes group to close. */
+    readonly id: ClientID,
+    message?: string
+  ) { super(message) }
+}
+
 export default class {
 
   private readonly acks: Set<ClientID> = new Set
@@ -27,6 +35,19 @@ export default class {
     for (const client of this.clients)
       this.bind(client)
     this.ack(initiator.id)
+
+    // Notify all other clients when a group fails.
+    this.ready.event.catch((e: LeaveGroupError) => {
+      for (const { id, send } of this.clients)
+        if (id != e.id) {
+          const groupIds = new Set(this.clientIDs)
+          // ackr will go first
+          groupIds.delete(e.id)
+          // browser doesn't know their own id
+          groupIds.delete(id)
+          send(groupLeave(e.id, ...groupIds))
+        }
+    })
   }
 
   private ack(myId: ClientID) {
@@ -50,7 +71,9 @@ export default class {
 
   private async bind(client: Client) {
     // Remove client once it is dead so it can be GC'd.
-    client.stateChange.on(state => state == State.DEAD && this.clients.delete(client))
+    client.stateChange.on(state => state == State.DEAD
+      && this.clients.delete(client)
+      && this.ready.deactivate(new LeaveGroupError(client.id, `${client.id} disconnected while in potential group with ${[...this.clientIDs]}`)))
 
     for await (const data of client.message)
       switch (client.state) {
@@ -63,18 +86,8 @@ export default class {
             if (ids.size == this.clients.size && ![...ids].filter(id => !this.clientIDs.has(id)).length)
               if (approve)
                 this.ack(client.id)
-              else {
-                for (const { id, send } of this.clients)
-                  if (id != client.id) {
-                    const groupIds = new Set(this.clientIDs)
-                    // ackr will go first
-                    groupIds.delete(client.id)
-                    // browser doesn't know their own id
-                    groupIds.delete(id)
-                    send(groupLeave(client.id, ...groupIds))
-                  }
-                this.ready.deactivate(Error(`${client.id} doesn't want to join ${[...ids]}`))
-              }
+              else
+                this.ready.deactivate(new LeaveGroupError(client.id, `${client.id} doesn't want to join ${[...ids]}`))
           } catch (_) { } // Ignore, the lobby will handle this
           break
 

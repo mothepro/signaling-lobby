@@ -25,6 +25,24 @@ describe('Groups', () => {
     ids.should.containEql(myId)
   })
 
+  it('Group shut down after client leaves', async () => {
+    await server.ready.event
+    const [mySocket, myClient] = await joinLobby(http, server, 123, 'mo'),
+      [otherSocket, otherClient] = await joinLobby(http, server, 123, 'momo')
+
+    mySocket.sendProposal(true, otherClient.id)
+    await otherSocket.groupChange.next
+
+    mySocket.exit()
+
+    await myClient.stateChange.next
+    const { approval, ids } = await otherSocket.groupChange.next
+
+    approval.should.be.false()
+    ids.should.have.size(1)
+    ids.should.containEql(myClient.id)
+  })
+
   it('Group shut down after by data sent', async () => {
     await server.ready.event
     const [mySocket, myClient] = await joinLobby(http, server, 123, 'mo'),
@@ -170,7 +188,7 @@ describe('Groups', () => {
     otherSocket.readyState.should.eql(CLOSED)
   })
 
-  it('leaves all other groups once syncing', async () => {
+  it('Leaves all other groups once syncing', async () => {
     await server.ready.event
     const [socket0, client0] = await joinLobby(http, server, 123, 'mo'),
       [socket1, client1] = await joinLobby(http, server, 123, 'momo'),

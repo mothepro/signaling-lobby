@@ -6,7 +6,7 @@ import { createServer, Server } from 'http'
 
 describe('Groups', () => {
   let server: SocketServer,
-  http: Server
+    http: Server
 
   beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 1000, 100))
   afterEach(() => http.close())
@@ -105,7 +105,10 @@ describe('Groups', () => {
     mySocket.sendProposal(true, otherId)
     otherSocket.sendProposal(true, myId)
 
-    const [myCode, otherCode] = await Promise.all([
+    const [
+      { ids: myGroupIDs, code: myCode },
+      { ids: otherGroupIDs, code: otherCode },
+    ] = await Promise.all([
       mySocket.groupFinal.next,
       otherSocket.groupFinal.next
     ])
@@ -113,6 +116,10 @@ describe('Groups', () => {
     myCode.should.be.aboveOrEqual(0)
     myCode.should.be.below(2 ** 32)
     myCode.should.eql(otherCode)
+    myGroupIDs.should.have.size(1)
+    myGroupIDs.should.containEql(otherId)
+    otherGroupIDs.should.have.size(1)
+    otherGroupIDs.should.containEql(myId)
   })
 
   it('Notify lobby clients when group is formed', async () => {

@@ -7,6 +7,15 @@ import { ClientID, Name, LobbyID, Code } from '../../src/messages'
 
 export const encoder = new TextEncoder
 
+/** Gets list of `ClientID`s from a buffer at an offset. */
+// Buffer -> UInt16Array is not WAI. Do not rely on the underlying ArrayBuffer `data.buffer`
+function getClientIDs(data: Buffer, offset = 0): ClientID[] {
+  const ids = []
+  for (let i = offset; i < data.byteLength; i += Size.SHORT)
+    ids.push(data.readUInt16LE(i))
+  return ids
+}
+
 export default class {
   private socket: WebSocket
 
@@ -36,17 +45,21 @@ export default class {
         case Code.GROUP_REQUEST:
           if (data.byteLength >= Size.CHAR + Size.SHORT
             && data.byteLength % Size.SHORT == Size.CHAR) {
-            // Buffer -> UInt16Array is not WAI. Do not rely on the underlying ArrayBuffer `data.buffer`
-            const ids = []
-            for (let offset = Size.CHAR; offset < data.byteLength; offset += Size.SHORT)
-              ids.push(data.readUInt16LE(offset))
-            this.groupChange.activate({ ids, approval: data.readInt8(0) == Code.GROUP_REQUEST })
+            this.groupChange.activate({
+              approval: data.readInt8(0) == Code.GROUP_REQUEST,
+              ids: getClientIDs(data, Size.CHAR),
+            })
           }
           break
 
         case Code.GROUP_FINAL:
-          if (data.byteLength == Size.CHAR + Size.INT)
-            this.groupFinal.activate(data.readUInt32LE(Size.CHAR))
+          if (data.byteLength >= Size.CHAR + Size.INT
+            && data.byteLength % Size.SHORT == Size.CHAR) {
+            this.groupFinal.activate({
+              code: data.readUInt32LE(Size.CHAR),
+              ids: getClientIDs(data, Size.CHAR + Size.INT),
+            })
+          }
           break
       }
   })
@@ -65,7 +78,10 @@ export default class {
   }>()
 
   /** Activated when a group finalization message is received. */
-  readonly groupFinal = new SafeEmitter<number>()
+  readonly groupFinal = new SafeEmitter<{
+    ids: ClientID[]
+    code: number
+  }>()
 
   constructor(server: Server) {
     this.socket = new WebSocket(`ws://localhost:${(server.address()! as AddressInfo).port}`)

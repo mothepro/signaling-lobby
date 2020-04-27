@@ -101,10 +101,11 @@ function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, ...ids: C
 export const groupJoin = (...ids: ClientID[]) => groupChange(Code.GROUP_REQUEST, ...ids)
 export const groupLeave = (...ids: ClientID[]) => groupChange(Code.GROUP_REJECT, ...ids)
 
-export function groupFinal(code: number) {
-  const ret = new DataView(new ArrayBuffer(Size.CHAR + Size.INT))
+export function groupFinal(code: number, ...ids: ClientID[]) {
+  const ret = new DataView(new ArrayBuffer(Size.CHAR + Size.INT + ids.length * Size.SHORT))
   ret.setUint8(0, Code.GROUP_FINAL)
   ret.setUint32(Size.CHAR, code, true)
+  new Uint8Array(ret.buffer, Size.CHAR + Size.INT).set(new Uint16Array(ids))
   return ret.buffer
 }
 

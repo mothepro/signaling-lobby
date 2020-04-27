@@ -22,7 +22,11 @@ export default class {
   readonly ready = new SingleEmitter(
     () => logger(Level.INFO, this.clientIDs, 'have finalized a group'),
     () => [...this.clients].map(({ stateChange }) => stateChange.activate(State.SYNCING)),
-    () => [...this.clients].map(({ send }) => send(groupFinal(this.code))))
+    () => [...this.clients].map(({ id, send }) => {
+      const groupIds = new Set(this.clientIDs)
+      groupIds.delete(id) // browser doesn't know their own id
+      send(groupFinal(this.code, ...groupIds))
+    }))
 
   constructor(
     initiator: Client,
@@ -32,8 +36,11 @@ export default class {
 
     this.clients.add(initiator)
     this.clientIDs.add(initiator.id)
-    for (const client of this.clients)
-      this.bind(client)
+    // This must be done since async isn't allowed in constructor & binds can't "overlap".
+    for (const client of this.clients) {
+      this.bindState(client)
+      this.bindMessage(client)
+    }
     this.ack(initiator.id)
 
     // Notify all other clients when a group fails.
@@ -69,12 +76,7 @@ export default class {
         }
   }
 
-  private async bind(client: Client) {
-    // Remove client once it is dead so it can be GC'd.
-    client.stateChange.on(state => state == State.DEAD
-      && this.clients.delete(client)
-      && this.ready.deactivate(new LeaveGroupError(client.id, `${client.id} disconnected while in potential group with ${[...this.clientIDs]}`)))
-
+  private async bindMessage(client: Client) {
     for await (const data of client.message)
       switch (client.state) {
         case State.IN_LOBBY:
@@ -100,6 +102,16 @@ export default class {
             if (id == to && to != client.id)
               send(view.buffer)
           break
+      }
+  }
+
+  private async bindState(client: Client) {
+    // Remove client once it is dead so it can be GC'd.
+    for await (const state of client.stateChange)
+      if (state == State.DEAD) {
+        this.clients.delete(client)
+        this.ready.deactivate(new LeaveGroupError(client.id, `${client.id} disconnected while in potential group with ${[...this.clientIDs]}`))
+        return
       }
   }
 }

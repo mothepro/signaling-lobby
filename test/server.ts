@@ -9,7 +9,7 @@ describe('Server', () => {
   let server: SocketServer,
     http: Server
 
-  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 1000, 100))
+  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 500, 100))
 
   afterEach(() => http.close())
 
@@ -50,7 +50,7 @@ describe('Server', () => {
     const client = new BrowserSocket(http)
     await client.open.event
 
-    await milliseconds(1000 + 10) // some delta to allow server to close.
+    await milliseconds(500 + 5) // some delta to allow server to close.
 
     client.close.triggered.should.be.true()
     client.readyState.should.eql(CLOSED)

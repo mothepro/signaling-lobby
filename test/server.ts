@@ -1,8 +1,9 @@
 import 'should'
-import { OPEN } from 'ws'
+import { OPEN, CLOSED } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
 import SocketServer from '../src/SocketServer'
 import { createServer, Server } from 'http'
+import milliseconds from './util/delay'
 
 describe('Server', () => {
   let server: SocketServer,
@@ -48,9 +49,10 @@ describe('Server', () => {
 
     const client = new BrowserSocket(http)
     await client.open.event
-    setTimeout(() => {
-      client.close.triggered.should.be.true()
-      client.readyState.should.eql(1099)
-    }, 1000 + 10 /* Delta */)
+
+    await milliseconds(1000 + 10) // some delta to allow server to close.
+
+    client.close.triggered.should.be.true()
+    client.readyState.should.eql(CLOSED)
   })
 })

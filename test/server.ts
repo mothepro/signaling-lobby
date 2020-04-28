@@ -4,6 +4,7 @@ import BrowserSocket from './util/BrowserSocket'
 import SocketServer from '../src/SocketServer'
 import { createServer, Server } from 'http'
 import milliseconds from './util/delay'
+import { State } from '../src/Client'
 
 describe('Server', () => {
   let server: SocketServer,
@@ -44,7 +45,7 @@ describe('Server', () => {
       close.triggered.should.be.false()
   })
 
-  it('Idlers are kicked', async () => {
+  it('Kicks Idlers', async () => {
     await server.ready.event
 
     const client = new BrowserSocket(http)
@@ -54,5 +55,63 @@ describe('Server', () => {
 
     client.close.triggered.should.be.true()
     client.readyState.should.eql(CLOSED)
+  })
+
+  it('Kicks clients with invalid names', async () => {
+    await server.ready.event
+    const socket = new BrowserSocket(http),
+      client = await server.connection.next
+
+    for await (const state of client.stateChange)
+      switch (state) {
+        case State.CONNECTED:
+          await socket.open.event
+          socket.sendIntro(123, '\n\t \r\u200b')
+          break
+
+        case State.DEAD:
+          client.socket.readyState.should.equal(CLOSED)
+          await socket.close.event
+          return
+      }
+
+  })
+
+  it('Kicks non-intros', async () => {
+    await server.ready.event
+    const socket = new BrowserSocket(http),
+      client = await server.connection.next
+
+    for await (const state of client.stateChange)
+      switch (state) {
+        case State.CONNECTED:
+          await socket.open.event
+          socket.send(new Uint8Array([0, 1]).buffer)
+          break
+
+        case State.DEAD:
+          client.socket.readyState.should.equal(CLOSED)
+          await socket.close.event
+          return
+      }
+  })
+
+  it('Kicks empty messages', async () => {
+    await server.ready.event
+    const socket = new BrowserSocket(http),
+      client = await server.connection.next
+
+    for await (const state of client.stateChange)
+      switch (state) {
+        case State.CONNECTED:
+          await socket.open.event
+          socket.send(new ArrayBuffer(0))
+          break
+
+        case State.DEAD:
+          client.socket.readyState.should.equal(CLOSED)
+          await socket.close.event
+          return
+      }
   })
 })

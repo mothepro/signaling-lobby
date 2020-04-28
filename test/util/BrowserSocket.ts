@@ -19,6 +19,8 @@ function getClientIDs(data: Buffer, offset = 0): ClientID[] {
 export default class {
   private socket: WebSocket
 
+  get readyState() { return this.socket.readyState }
+
   readonly open = new SafeSingleEmitter
   readonly close = new SingleEmitter
   readonly message = new SafeEmitter<Data>(data => {
@@ -114,7 +116,4 @@ export default class {
     new Uint8Array(buf.buffer, Size.CHAR).set(new Uint16Array(ids))
     this.send(buf.buffer)
   }
-
-
-  get readyState() { return this.socket.readyState }
 }

@@ -69,7 +69,6 @@ export default class {
     data => {
       if (this.state == State.CONNECTED)
         try {
-          // An introduction from the client
           const { name, lobby } = getIntro(data)
           this.name = name.substr(0, this.maxNameLength)
           this.lobby = lobby

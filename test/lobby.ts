@@ -1,6 +1,6 @@
 import { CLOSED, OPEN } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
-import joinLobby from './util/joinLobby'
+import joinLobby, { nextLobby } from './util/joinLobby'
 import SocketServer from '../src/SocketServer'
 import { createServer, Server } from 'http'
 
@@ -16,19 +16,21 @@ describe('Lobby', () => {
     await server.ready.event
 
     // Zero width chars are removed from the names
-    const [socket, client] = await joinLobby(http, server, 123, '\n\tmo\r\u200b')
+    const lobby = nextLobby(),
+      [socket, client] = await joinLobby(http, server, '\n\tmo\r\u200b', lobby)
 
     socket.close.triggered.should.be.false()
     socket.readyState.should.eql(OPEN)
-    client.lobby!.should.eql(123)
+    client.lobby!.should.eql(lobby)
     client.name!.should.eql('mo')
   })
 
   it('Multiple clients are notified when joining', async () => {
     await server.ready.event
 
-    const [mySocket, myClient] = await joinLobby(http, server, 123, 'mo'),
-      [otherSocket, otherClient] = await joinLobby(http, server, 123, 'momo'),
+    const lobby = nextLobby(),
+      [mySocket, myClient] = await joinLobby(http, server, 'mo', lobby),
+      [otherSocket, otherClient] = await joinLobby(http, server, 'momo', lobby),
       msg1 = await mySocket.clientPresence.next,
       msg2 = await otherSocket.clientPresence.next
 
@@ -43,8 +45,9 @@ describe('Lobby', () => {
   it('Multiple clients are notified when leaving', async () => {
     await server.ready.event
 
-    const [socket] = await joinLobby(http, server, 123, 'mo'),
-      [socket2, client2] = await joinLobby(http, server, 123, 'momo')
+    const lobby = nextLobby(),
+      [socket] = await joinLobby(http, server, 'mo', lobby),
+      [socket2, client2] = await joinLobby(http, server, 'momo', lobby)
 
     socket2.exit()
     await client2.stateChange.next

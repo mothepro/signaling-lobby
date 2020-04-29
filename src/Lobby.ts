@@ -2,22 +2,38 @@ import Client, { State } from './Client'
 import { SafeEmitter } from 'fancy-emitter'
 import logger, { Level } from '../util/logger'
 import Group from './Group'
-import { getProposal, ClientID, clientJoin, clientLeave } from './messages'
+import { getProposal, ClientID, clientJoin, clientLeave, LobbyID } from './messages'
 
-// sort order doesn't matter as long as it is always consistent
-export const hashIds = (...ids: ClientID[]) => ids.sort().join()
+export default class Lobby {
+  /** Map that points to all the lobbies with clients still in it. */
+  private static lobbies: Map<LobbyID, Lobby> = new Map
 
-export default class {
+  /**
+   * Turns a list of client IDs to a hashed string
+   * Sort order doesn't matter as long as it is always consistent
+   */
+  private static hashIds = (...ids: ClientID[]) => ids.sort().join()
+
+  /** Gets a lobby with the given ID. Creates a new Lobby if one doesn't exist. */
+  static make(id: LobbyID) {
+    if (!Lobby.lobbies.has(id)) {
+      logger(Level.INFO, 'Creating lobby', id)
+      Lobby.lobbies.set(id, new Lobby)
+    }
+    return Lobby.lobbies.get(id)!
+  }
+
+  private constructor() { }
+
   /** All the clients */
   private readonly clients: Map<ClientID, Client> = new Map
 
   /** List of pending groups. */
   private readonly groups: Map<string, Group> = new Map
 
-  /** Number of clients in this lobby. */
-  get clientCount() { return this.clients.size }
-
   readonly clientJoin = new SafeEmitter<Client>(
+    ({ id, lobby, name }) => logger(Level.INFO, id, '> joined lobby', lobby, 'as', name),
+
     // Tell everyone else about me
     client => [...this.clients].map(([, { send }]) => send(clientJoin(client))),
 
@@ -35,7 +51,7 @@ export default class {
             const { approve, ids } = getProposal(data)
 
             // Recieved a Create Group Proposal
-            if (approve && !this.groups.has(hashIds(client.id, ...ids)))
+            if (approve && !this.groups.has(Lobby.hashIds(client.id, ...ids)))
               this.makeGroup(client, ...ids)
           } catch (e) {
             client.failure(e)
@@ -58,7 +74,7 @@ export default class {
   /** Create and clean up a group once it is no longer needed. */
   async makeGroup(initiator: Client, ...ids: ClientID[]) {
     const participants: Set<Client> = new Set,
-      hash = hashIds(initiator.id, ...ids)
+      hash = Lobby.hashIds(initiator.id, ...ids)
 
     for (const clientId of ids)
       if (this.clients.has(clientId) && clientId != initiator.id)

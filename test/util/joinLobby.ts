@@ -4,13 +4,18 @@ import SocketServer from '../../src/SocketServer'
 import { State } from '../../src/Client'
 import BrowserSocket from './BrowserSocket'
 
+let lobbyId = 0
+
+/** Gets a lobby that is currently unused. */
+export const nextLobby = () => lobbyId++
+
 /** 
  * Helper to connect a client to a lobby
  * 
  * Note: Do not run in a parallel multiple times (`Promise.all`),
  *  since the client is just the next connection to the server.
  */
-export default async function (http: Server, server: SocketServer, lobby: LobbyID, name: Name) {
+export default async function (http: Server, server: SocketServer, name: Name, lobby = nextLobby()) {
   const socket = new BrowserSocket(http),
     client = await server.connection.next
 

@@ -113,7 +113,8 @@ export default class {
   sendProposal(approve: boolean, ...ids: ClientID[]) {
     const buf = new DataView(new ArrayBuffer(Size.CHAR + Size.SHORT * ids.length))
     buf.setInt8(0, +approve)
-    new Uint8Array(buf.buffer, Size.CHAR).set(new Uint16Array(ids))
+    for (let i = 0; i < ids.length; i++)
+      buf.setUint16(Size.CHAR + i * Size.SHORT, ids[i], true)
     this.send(buf.buffer)
   }
 }

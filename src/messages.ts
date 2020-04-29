@@ -94,7 +94,8 @@ export function clientLeave({ id }: Client) {
 function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, ...ids: ClientID[]) {
   const ret = new DataView(new ArrayBuffer(Size.CHAR + ids.length * Size.SHORT))
   ret.setUint8(0, approval)
-  new Uint8Array(ret.buffer, Size.CHAR).set(new Uint16Array(ids))
+  for (let i = 0; i < ids.length; i++)
+    ret.setUint16(Size.CHAR + i * Size.SHORT, ids[i], true)
   return ret.buffer
 }
 
@@ -105,7 +106,8 @@ export function groupFinal(code: number, ...ids: ClientID[]) {
   const ret = new DataView(new ArrayBuffer(Size.CHAR + Size.INT + ids.length * Size.SHORT))
   ret.setUint8(0, Code.GROUP_FINAL)
   ret.setUint32(Size.CHAR, code, true)
-  new Uint8Array(ret.buffer, Size.CHAR + Size.INT).set(new Uint16Array(ids))
+  for (let i = 0; i < ids.length; i++)
+    ret.setUint16(Size.CHAR + Size.INT + i * Size.SHORT, ids[i], true)
   return ret.buffer
 }
 

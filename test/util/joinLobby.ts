@@ -1,5 +1,5 @@
 import { Server } from 'http'
-import { LobbyID, Name } from '../../src/messages'
+import { Name } from '../../src/messages'
 import SocketServer from '../../src/SocketServer'
 import { State } from '../../src/Client'
 import BrowserSocket from './BrowserSocket'

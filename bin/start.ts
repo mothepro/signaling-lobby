@@ -23,11 +23,11 @@ export default async function (
 
     const server = keyPath && certPath
       ? createServer({
-          key: await readFileAsync(keyPath, { encoding: 'utf-8' }),
-          cert: await readFileAsync(certPath, { encoding: 'utf-8' }),
-        }).listen(port, hostname)
-      : createUnsecureServer().listen(port, hostname),
-      socketServer = new SocketServer(server, maxConnections, maxLength, idleTimeout, syncTimeout)
+        key: await readFileAsync(keyPath, { encoding: 'utf-8' }),
+        cert: await readFileAsync(certPath, { encoding: 'utf-8' }),
+      })
+      : createUnsecureServer(),
+      socketServer = new SocketServer(server.listen(port, hostname), maxConnections, maxLength, idleTimeout, syncTimeout)
 
     await socketServer.ready.event
     logger(Level.USEFUL, 'Signaling server initiated', server.address())

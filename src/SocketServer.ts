@@ -7,19 +7,18 @@ import logger, { Level } from '../util/logger'
 import { Max } from '../util/constants'
 import { Server } from 'http'
 
+  /** Create available IDs for the clients */
+const availableId = openId(Max.SHORT)
+
 // TODO add DoS prevention use
 // TODO Simplify this by not using a class here
 export default class {
-
-/** Number of clients in this server, both bound and unbound to a lobby. */
+  /** Number of clients in this server, both bound and unbound to a lobby. */
   // TODO improve this
   clientCount = 0
 
   /** Clients that have yet to join a lobby. */
   readonly pendingClients: Set<Client> = new Set
-
-  /** Create available IDs for the clients */
-  private readonly ids = openId(Max.SHORT)
 
   readonly ready = new SafeSingleEmitter
 
@@ -66,7 +65,7 @@ export default class {
         socket.destroy()
       } else
         webSocketServer.handleUpgrade(request, socket, head, webSocket =>
-          this.connection.activate(new Client(this.ids.next().value, webSocket as WebSocket, maxLength, idleTimeout, syncTimeout)))
+          this.connection.activate(new Client(availableId.next().value, webSocket as WebSocket, maxLength, idleTimeout, syncTimeout)))
     })
   }
 }

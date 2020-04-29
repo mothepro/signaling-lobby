@@ -51,7 +51,7 @@ describe('Server', () => {
     const client = new BrowserSocket(http)
     await client.open.event
 
-    await milliseconds(500 + 5) // some delta to allow server to close.
+    await milliseconds(500 + 15) // some delta to allow server to close.
 
     client.close.triggered.should.be.true()
     client.readyState.should.eql(CLOSED)

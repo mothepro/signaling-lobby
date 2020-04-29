@@ -65,6 +65,23 @@ export function getProposal(input: Data): Proposal {
   }
 }
 
+/** Data sent after a sync. */
+export interface SyncBuffer {
+  /** Who the data was directed to. */
+  to: ClientID
+
+  /** View of the buffer sent, including the `to`. */
+  content: DataView
+}
+
+export function getSyncBuffer(input: Data): SyncBuffer {
+  const content = dataToView(input, 'Sync Buffer', view => view.byteLength > Size.SHORT)
+  return {
+    to: content.getUint16(0, true),
+    content,
+  }
+}
+
 // Data sent to the browsers
 
 export const enum Code {

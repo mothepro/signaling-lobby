@@ -1,10 +1,10 @@
 import { SingleEmitter } from 'fancy-emitter'
-import { ClientID, getProposal, groupJoin, groupLeave, groupFinal } from './messages'
+import { ClientID, getProposal, groupJoin, groupLeave, groupFinal, getSyncBuffer } from './messages'
 import Client, { State } from './Client'
 import logger, { Level } from '../util/logger'
 import { Max } from '../util/constants'
 
-class LeaveGroupError extends Error {
+class LeaveError extends Error {
   constructor(
     /** ID of the client who causes group to close. */
     readonly id: ClientID,
@@ -12,42 +12,65 @@ class LeaveGroupError extends Error {
   ) { super(message) }
 }
 
-export default class {
+export default class Group {
+  /** Map that points to all the groups with clients still in it. */
+  private static groups: Map<string, Group> = new Map
+
+  /**
+   * Turns a list of client IDs to a hashed string
+   * Sort order doesn't matter as long as it is always consistent
+   */
+  private static hashIds = (...ids: ClientID[]) => ids.sort().join()
+
+  /** Gets a Group with the given members. Creates a new Group if one doesn't exist. */
+  static make(initiator: Client, ...clients: Client[]) {
+    const hash = Group.hashIds(initiator.id, ...clients.map(({ id }) => id))
+
+    if (!Group.groups.has(hash))
+      Group.groups.set(hash, new Group(initiator, ...clients))
+    return Group.groups.get(hash)!
+  }
 
   private readonly acks: Set<ClientID> = new Set
-  private readonly clientIDs = new Set([...this.clients].map(({ id }) => id))
+
+  private readonly clients: Map<ClientID, Client> = new Map
+
   /** Code to be sent to the clients when group is done. */
   private readonly code = Math.trunc(Math.random() * Max.INT)
 
   readonly ready = new SingleEmitter(
-    () => logger(Level.INFO, this.clientIDs, 'have finalized a group'),
-    () => [...this.clients].map(({ stateChange }) => stateChange.activate(State.SYNCING)),
-    () => [...this.clients].map(({ id, send }) => {
-      const groupIds = new Set(this.clientIDs)
+    () => logger(Level.INFO, this.clients.keys(), 'have finalized a group'),
+    () => [...this.clients.values()].map(({ stateChange }) => stateChange.activate(State.SYNCING)),
+    () => [...this.clients.values()].map(({ id, send }) => {
+      const groupIds = new Set(this.clients.keys())
       groupIds.delete(id) // browser doesn't know their own id
       send(groupFinal(this.code, ...groupIds))
     }))
 
-  constructor(
+  /** Create and clean up a group once it is no longer needed. */
+  private constructor(
     initiator: Client,
-    readonly clients: Set<Client>
+    // TODO just make this a map...
+    ...clients: Client[]
   ) {
-    logger(Level.INFO, initiator.id, '> proposed group to include', this.clientIDs)
+    this.clients.set(initiator.id, initiator)
+    for (const client of clients)
+      this.clients.set(client.id, client)
 
-    this.clients.add(initiator)
-    this.clientIDs.add(initiator.id)
     // This must be done since async isn't allowed in constructor & binds can't "overlap".
-    for (const client of this.clients) {
+    for (const client of this.clients.values()) {
       this.bindState(client)
       this.bindMessage(client)
     }
+
+    logger(Level.INFO, initiator.id, '> proposed group to include', ...this.clients.keys())
     this.ack(initiator.id)
 
     // Notify all other clients when a group fails.
-    this.ready.event.catch((e: LeaveGroupError) => {
-      for (const { id, send } of this.clients)
+    this.ready.event.catch((e: LeaveError) => {
+      for (const { id, send } of this.clients.values())
         if (id != e.id) {
-          const groupIds = new Set(this.clientIDs)
+          const groupIds = new Set(this.clients.keys())
           // ackr will go first
           groupIds.delete(e.id)
           // browser doesn't know their own id
@@ -55,24 +78,25 @@ export default class {
           send(groupLeave(e.id, ...groupIds))
         }
     })
+      .finally(() => Group.groups.delete(Group.hashIds(...this.clients.keys())))
   }
 
-  private ack(myId: ClientID) {
-    this.acks.add(myId)
-    logger(Level.INFO, myId, '> joining group of', this.clientIDs, 'so far', this.acks, 'have agreed')
+  private ack(ackerId: ClientID) {
+    this.acks.add(ackerId)
+    logger(Level.INFO, ackerId, '> joining group of', new Set(this.clients.keys()), 'so far', this.acks, 'have agreed')
 
     // Everyone is in!
     if (this.acks.size == this.clients.size)
       this.ready.activate()
     else
-      for (const { id, send } of this.clients)
-        if (id != myId) {
-          const groupIds = new Set(this.clientIDs)
+      for (const { id, send } of this.clients.values())
+        if (id != ackerId) {
+          const groupIds = new Set(this.clients.keys())
           // ackr will go first
-          groupIds.delete(myId)
+          groupIds.delete(ackerId)
           // browser doesn't know their own id
           groupIds.delete(id)
-          send(groupJoin(myId, ...groupIds))
+          send(groupJoin(ackerId, ...groupIds))
         }
   }
 
@@ -85,22 +109,27 @@ export default class {
             ids.add(client.id)
 
             // Only handle if group belongs to us, and only us
-            if (ids.size == this.clients.size && ![...ids].filter(id => !this.clientIDs.has(id)).length)
+            if (ids.size == this.clients.size && ![...ids].filter(id => !this.clients.has(id)).length)
               if (approve)
                 this.ack(client.id)
               else
-                this.ready.deactivate(new LeaveGroupError(client.id, `${client.id} doesn't want to join ${[...ids]}`))
+                this.ready.deactivate(new LeaveError(client.id, `${client.id} doesn't want to join ${[...ids]}`))
           } catch (_) { } // Ignore, the lobby will handle this
           break
 
         case State.SYNCING:
-          const view = new DataView(data as ArrayBuffer),
-            to = view.getUint16(0, true)
-          view.setUint16(0, client.id, true)
-            
-          for (const { id, send } of this.clients)
-            if (id == to && to != client.id)
-              send(view.buffer)
+          const { to, content } = getSyncBuffer(data)
+
+          if (to == client.id)
+            throw Error(`${client.id}> attempted sending data to themself`)
+
+          if (!this.clients.has(to))
+            throw Error(`${client.id}> attempted sending data to non exsistent client ${to}`)
+
+          content.setUint16(0, client.id, true) // override who this content is for
+          for (const { id, send } of this.clients.values())
+            if (id == to)
+              send(content.buffer)
           break
       }
   }
@@ -108,10 +137,7 @@ export default class {
   private async bindState(client: Client) {
     // Remove client once it is dead so it can be GC'd.
     for await (const state of client.stateChange)
-      if (state == State.DEAD) {
-        this.clients.delete(client)
-        this.ready.deactivate(new LeaveGroupError(client.id, `${client.id} disconnected while in potential group with ${[...this.clientIDs]}`))
-        return
-      }
+      if (state == State.DEAD)
+        return this.ready.deactivate(new LeaveError(client.id, `${client.id} disconnected while in potential group with ${[...this.clients.keys()]}`))
   }
 }

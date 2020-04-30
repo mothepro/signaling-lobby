@@ -39,26 +39,18 @@ export default class Group {
   private readonly code = Math.trunc(Math.random() * Max.INT)
 
   readonly ready = new SingleEmitter(
-    () => logger(Level.INFO, this.clients.keys(), 'have finalized a group'),
-    () => [...this.clients.values()].map(({ stateChange }) => stateChange.activate(State.SYNCING)),
-    () => [...this.clients.values()].map(({ id, send }) => {
-      const groupIds = new Set(this.clients.keys())
-      groupIds.delete(id) // browser doesn't know their own id
-      send(groupFinal(this.code, ...groupIds))
-    }))
+    () => logger(Level.INFO, ...this.clients.keys(), 'have finalized a group'),
+    () => [...this.clients].map(([, { stateChange }]) => stateChange.activate(State.SYNCING)),
+    () => [...this.clients].map(([id, { send }]) => send(groupFinal(this.code, ...this.idsWithout(id))))) // browser doesn't know their own id
 
   /** Create and clean up a group once it is no longer needed. */
-  private constructor(
-    initiator: Client,
-    // TODO just make this a map...
-    ...clients: Client[]
-  ) {
+  private constructor(initiator: Client, ...clients: Client[]) {
     this.clients.set(initiator.id, initiator)
     for (const client of clients)
       this.clients.set(client.id, client)
 
     // This must be done since async isn't allowed in constructor & binds can't "overlap".
-    for (const client of this.clients.values()) {
+    for (const [, client] of this.clients) {
       this.bindState(client)
       this.bindMessage(client)
     }
@@ -68,36 +60,32 @@ export default class Group {
 
     // Notify all other clients when a group fails.
     this.ready.event.catch((e: LeaveError) => {
-      for (const { id, send } of this.clients.values())
-        if (id != e.id) {
-          const groupIds = new Set(this.clients.keys())
-          // ackr will go first
-          groupIds.delete(e.id)
-          // browser doesn't know their own id
-          groupIds.delete(id)
-          send(groupLeave(e.id, ...groupIds))
-        }
+      for (const [id, { send }] of this.clients)
+        if (id != e.id)
+          send(groupLeave(e.id, ...this.idsWithout(e.id, id))) // ackr will go first & browser doesn't know their own id
     })
       .finally(() => Group.groups.delete(Group.hashIds(...this.clients.keys())))
   }
 
+  /** All the client IDs in this group without `ids`. */
+  private idsWithout(...ids: ClientID[]) {
+    const all = new Set(this.clients.keys())
+    for (const id of ids)
+      all.delete(id)
+    return all
+  }
+
   private ack(ackerId: ClientID) {
     this.acks.add(ackerId)
-    logger(Level.INFO, ackerId, '> joining group of', new Set(this.clients.keys()), 'so far', this.acks, 'have agreed')
+    logger(Level.INFO, ackerId, '> joining group of', ...this.clients.keys(), 'so far', this.acks, 'have agreed')
 
     // Everyone is in!
     if (this.acks.size == this.clients.size)
       this.ready.activate()
     else
-      for (const { id, send } of this.clients.values())
-        if (id != ackerId) {
-          const groupIds = new Set(this.clients.keys())
-          // ackr will go first
-          groupIds.delete(ackerId)
-          // browser doesn't know their own id
-          groupIds.delete(id)
-          send(groupJoin(ackerId, ...groupIds))
-        }
+      for (const [id, { send }] of this.clients)
+        if (id != ackerId)
+          send(groupJoin(ackerId, ...this.idsWithout(ackerId, id))) // ackr will go first & browser doesn't know their own id
   }
 
   private async bindMessage(client: Client) {
@@ -127,7 +115,7 @@ export default class Group {
             throw Error(`${client.id}> attempted sending data to non exsistent client ${to}`)
 
           content.setUint16(0, client.id, true) // override who this content is for
-          for (const { id, send } of this.clients.values())
+          for (const [id, { send }] of this.clients)
             if (id == to)
               send(content.buffer)
           break

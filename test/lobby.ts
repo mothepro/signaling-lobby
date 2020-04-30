@@ -1,20 +1,22 @@
-import { CLOSED, OPEN } from 'ws'
-import BrowserSocket from './util/BrowserSocket'
-import joinLobby, { nextLobby } from './util/joinLobby'
-import SocketServer from '../src/SocketServer'
+import 'should'
+import type { Emitter } from 'fancy-emitter'
 import { createServer, Server } from 'http'
+import { OPEN } from 'ws'
+import joinLobby, { nextLobby } from './util/joinLobby'
+import createSignalingLobby from '../src/createSignalingLobby'
+import Client from '../src/Client'
 
 describe('Lobby', () => {
-  let server: SocketServer,
-  http: Server
+  let server: Emitter<Client>, http: Server
 
-  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 1000, 100))
-
-  afterEach(() => http.close())
+  beforeEach(async () => server = await createSignalingLobby({
+    maxConnections: 10,
+    maxLength: 100,
+    idleTimeout: 1000,
+    syncTimeout: 100,
+  }, http = createServer().listen()))
 
   it('Client can connect to lobby', async () => {
-    await server.ready.event
-
     // Zero width chars are removed from the names
     const lobby = nextLobby(),
       [socket, client] = await joinLobby(http, server, '\n\tmo\r\u200b', lobby)
@@ -26,8 +28,6 @@ describe('Lobby', () => {
   })
 
   it('Multiple clients are notified when joining', async () => {
-    await server.ready.event
-
     const lobby = nextLobby(),
       [mySocket, myClient] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, otherClient] = await joinLobby(http, server, 'momo', lobby),
@@ -43,8 +43,6 @@ describe('Lobby', () => {
   })
 
   it('Multiple clients are notified when leaving', async () => {
-    await server.ready.event
-
     const lobby = nextLobby(),
       [socket] = await joinLobby(http, server, 'mo', lobby),
       [socket2, client2] = await joinLobby(http, server, 'momo', lobby)

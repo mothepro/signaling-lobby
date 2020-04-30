@@ -1,8 +1,8 @@
-import { Server } from 'http'
+import type { Emitter } from 'fancy-emitter'
 import { Name } from '../../src/messages'
-import SocketServer from '../../src/SocketServer'
-import { State } from '../../src/Client'
+import Client, { State } from '../../src/Client'
 import BrowserSocket from './BrowserSocket'
+import { Server } from 'http'
 
 let lobbyId = 0
 
@@ -10,14 +10,15 @@ let lobbyId = 0
 export const nextLobby = () => lobbyId++
 
 /** 
- * Helper to connect a client to a lobby
+ * Helper to create a browser socket and connect it to a lobby.
+ * Returns with the browser socket and the `Client` used on the server once connected to the lobby.
  * 
- * Note: Do not run in a parallel multiple times (`Promise.all`),
- *  since the client is just the next connection to the server.
+ * Note: Do not run in a parallel multiple times (`Promise.all`).
+ *  This is because the `Client` is just the next connection to the server.
  */
-export default async function (http: Server, server: SocketServer, name: Name, lobby = nextLobby()) {
+export default async function (http: Server, server: Emitter<Client>, name: Name, lobby = nextLobby()) {
   const socket = new BrowserSocket(http),
-    client = await server.connection.next
+    client = await server.next
 
   for await (const state of client.stateChange)
     switch (state) {

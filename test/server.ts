@@ -1,33 +1,45 @@
 import 'should'
+import type { Emitter } from 'fancy-emitter'
 import { OPEN, CLOSED } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
-import SocketServer from '../src/SocketServer'
+import createSignalingLobby from '../src/createSignalingLobby'
 import { createServer, Server } from 'http'
 import milliseconds from './util/delay'
-import { State } from '../src/Client'
+import Client, { State } from '../src/Client'
 
 describe('Server', () => {
-  let server: SocketServer,
+  let server: Emitter<Client>,
+    socket: BrowserSocket,
     http: Server
 
-  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 500, 100))
+  beforeEach(async () => {
+    http = createServer().listen()
+    server = await createSignalingLobby({
+      maxConnections: 5,
+      maxLength: 100,
+      idleTimeout: 500,
+      syncTimeout: 100,
+    }, http)
+    socket = new BrowserSocket(http)
+  })
 
   afterEach(() => http.close())
 
   it('Clients can connect', async () => {
-    await server.ready.event
-    const client = new BrowserSocket(http)
-
     // This happens after the server connection completes
-    await client.open.event
-    client.readyState.should.eql(OPEN)
-    server.clientCount.should.eql(1)
+    await socket.open.event
+    socket.readyState.should.eql(OPEN)
+    server.count.should.eql(1)
   })
 
   it('Respects max connections', async () => {
-    await server.ready.event
-    const clients = new Array(10).fill(undefined)
-      .map(() => new BrowserSocket(http))
+    const clients = [
+      socket,
+      new BrowserSocket(http),
+      new BrowserSocket(http),
+      new BrowserSocket(http),
+      new BrowserSocket(http),
+    ]
 
     // all clients must be connected
     await Promise.all(clients.map(client => client.open.event))
@@ -38,7 +50,7 @@ describe('Server', () => {
     // socket hang up thrown
     overflow.close.event.should.be.rejected()
     overflow.open.triggered.should.be.false()
-    server.clientCount.should.eql(10)
+    server.count.should.eql(5)
 
     // other clients stay open
     for (const { close } of clients)
@@ -46,21 +58,16 @@ describe('Server', () => {
   })
 
   it('Kicks Idlers', async () => {
-    await server.ready.event
-
-    const client = new BrowserSocket(http)
-    await client.open.event
+    await socket.open.event
 
     await milliseconds(500 + 15) // some delta to allow server to close.
 
-    client.close.triggered.should.be.true()
-    client.readyState.should.eql(CLOSED)
+    socket.close.triggered.should.be.true()
+    socket.readyState.should.eql(CLOSED)
   })
 
   it('Kicks clients with invalid names', async () => {
-    await server.ready.event
-    const socket = new BrowserSocket(http),
-      client = await server.connection.next
+    const client = await server.next
 
     for await (const state of client.stateChange)
       switch (state) {
@@ -78,9 +85,7 @@ describe('Server', () => {
   })
 
   it('Kicks non-intros', async () => {
-    await server.ready.event
-    const socket = new BrowserSocket(http),
-      client = await server.connection.next
+    const client = await server.next
 
     for await (const state of client.stateChange)
       switch (state) {
@@ -97,9 +102,7 @@ describe('Server', () => {
   })
 
   it('Kicks empty messages', async () => {
-    await server.ready.event
-    const socket = new BrowserSocket(http),
-      client = await server.connection.next
+    const client = await server.next
 
     for await (const state of client.stateChange)
       switch (state) {

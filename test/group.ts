@@ -1,18 +1,24 @@
+import 'should'
+import type { Emitter } from 'fancy-emitter'
 import { CLOSED } from 'ws'
-import SocketServer from '../src/SocketServer'
-import { State } from '../src/Client'
-import joinLobby, { nextLobby } from './util/joinLobby'
 import { createServer, Server } from 'http'
+import createSignalingLobby from '../src/createSignalingLobby'
+import Client, { State } from '../src/Client'
+import joinLobby, { nextLobby } from './util/joinLobby'
 
 describe('Groups', () => {
-  let server: SocketServer,
-    http: Server
+  let server: Emitter<Client>, http: Server
 
-  beforeEach(() => server = new SocketServer(http = createServer().listen(), 10, 100, 1000, 100))
+  beforeEach(async () => server = await createSignalingLobby({
+    maxConnections: 10,
+    maxLength: 100,
+    idleTimeout: 1000,
+    syncTimeout: 100,
+  }, http = createServer().listen()))
+
   afterEach(() => http.close())
 
   it('Propose a group', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby)
@@ -27,7 +33,6 @@ describe('Groups', () => {
   })
 
   it('Group shut down after client leaves', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, myClient] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, otherClient] = await joinLobby(http, server, 'momo', lobby)
@@ -46,7 +51,6 @@ describe('Groups', () => {
   })
 
   it('Group shut down after by data sent', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, myClient] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, { id }] = await joinLobby(http, server, 'momo', lobby)
@@ -65,7 +69,6 @@ describe('Groups', () => {
   })
 
   it('Can leave a group', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby)
@@ -84,7 +87,6 @@ describe('Groups', () => {
   })
 
   it('Can leave a group after proposal', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby)
@@ -103,7 +105,6 @@ describe('Groups', () => {
   })
 
   it('Form a group', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby)
@@ -129,7 +130,6 @@ describe('Groups', () => {
   })
 
   it('Notify lobby clients when group is formed', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby),
@@ -149,7 +149,6 @@ describe('Groups', () => {
   })
 
   it('Send data directly when group is synced', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby)
@@ -179,7 +178,6 @@ describe('Groups', () => {
   })
 
   it('Eventually the group shall elegantly close', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [mySocket, myClient] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, otherClient] = await joinLobby(http, server, 'momo', lobby)
@@ -205,7 +203,6 @@ describe('Groups', () => {
   })
 
   it('Leaves all other groups once syncing', async () => {
-    await server.ready.event
     const lobby = nextLobby(),
       [socket0, client0] = await joinLobby(http, server, 'mo', lobby),
       [socket1, client1] = await joinLobby(http, server, 'momo', lobby),

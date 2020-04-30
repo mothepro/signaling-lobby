@@ -1,6 +1,6 @@
 export { ClientID, LobbyID, Name, Code } from './src/messages'
 export { Size, Max } from './util/constants'
-export { default as SocketServer } from './src/SocketServer'
+export { default } from './src/createSignalingLobby'
 export { default as Client, State } from './src/Client'
 export { default as Group } from './src/Group'
 export { default as Lobby } from './src/Lobby'

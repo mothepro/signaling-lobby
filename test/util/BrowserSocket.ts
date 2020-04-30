@@ -16,6 +16,7 @@ function getClientIDs(data: Buffer, offset = 0): ClientID[] {
   return ids
 }
 
+/** A Mock for a client connecting to the server with a browser. */
 export default class {
   private socket: WebSocket
 
@@ -46,22 +47,20 @@ export default class {
         case Code.GROUP_REJECT:
         case Code.GROUP_REQUEST:
           if (data.byteLength >= Size.CHAR + Size.SHORT
-            && data.byteLength % Size.SHORT == Size.CHAR) {
+            && data.byteLength % Size.SHORT == Size.CHAR)
             this.groupChange.activate({
               approval: data.readInt8(0) == Code.GROUP_REQUEST,
               ids: getClientIDs(data, Size.CHAR),
             })
-          }
           break
 
         case Code.GROUP_FINAL:
           if (data.byteLength >= Size.CHAR + Size.INT
-            && data.byteLength % Size.SHORT == Size.CHAR) {
+            && data.byteLength % Size.SHORT == Size.CHAR)
             this.groupFinal.activate({
               code: data.readUInt32LE(Size.CHAR),
               ids: getClientIDs(data, Size.CHAR + Size.INT),
             })
-          }
           break
       }
   })

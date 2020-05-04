@@ -1,4 +1,4 @@
-import type { Emitter } from 'fancy-emitter'
+import { Listener } from 'fancy-emitter'
 import { Name } from '../../src/messages'
 import Client, { State } from '../../src/Client'
 import BrowserSocket from './BrowserSocket'
@@ -16,7 +16,7 @@ export const nextLobby = () => lobbyId++
  * Note: Do not run in a parallel multiple times (`Promise.all`).
  *  This is because the `Client` is just the next connection to the server.
  */
-export default async function (http: Server, server: Emitter<Client>, name: Name, lobby = nextLobby()) {
+export default async function (http: Server, server: Listener<Client>, name: Name, lobby = nextLobby()) {
   const socket = new BrowserSocket(http),
     client = await server.next
 

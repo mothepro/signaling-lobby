@@ -1,5 +1,5 @@
 import 'should'
-import type { Emitter } from 'fancy-emitter'
+import { Listener } from 'fancy-emitter'
 import { OPEN, CLOSED } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
 import createSignalingLobby from '../src/createSignalingLobby'
@@ -8,7 +8,7 @@ import milliseconds from './util/delay'
 import Client, { State } from '../src/Client'
 
 describe('Server', () => {
-  let server: Emitter<Client>,
+  let server: Listener<Client> & { count: number }, // TODO upgrade fancy-emitter
     socket: BrowserSocket,
     http: Server
 

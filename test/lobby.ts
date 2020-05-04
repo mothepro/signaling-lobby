@@ -1,5 +1,5 @@
 import 'should'
-import type { Emitter } from 'fancy-emitter'
+import { Listener } from 'fancy-emitter'
 import { createServer, Server } from 'http'
 import { OPEN } from 'ws'
 import joinLobby, { nextLobby } from './util/joinLobby'
@@ -7,7 +7,7 @@ import createSignalingLobby from '../src/createSignalingLobby'
 import Client from '../src/Client'
 
 describe('Lobby', () => {
-  let server: Emitter<Client>, http: Server
+  let server: Listener<Client>, http: Server
 
   beforeEach(async () => server = await createSignalingLobby({
     maxConnections: 10,

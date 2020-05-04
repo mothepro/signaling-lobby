@@ -61,5 +61,4 @@ The Socket Server is exposed as an NPM module so it can be imported to allow for
 ## Roadmap
 
 + add DoS prevention (potenetially using 'headers' event)
-+ Delete dead lobbies
 + Simplify / Remove redundant Group class

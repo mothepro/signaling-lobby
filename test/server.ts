@@ -1,4 +1,3 @@
-import 'should'
 import { Listener } from 'fancy-emitter'
 import { OPEN, CLOSED } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
@@ -69,52 +68,57 @@ describe('Server', () => {
   it('Kicks clients with invalid names', async () => {
     const client = await server.next
 
-    for await (const state of client.stateChange)
-      switch (state) {
-        case State.CONNECTED:
+    try {
+      for await (const state of client.stateChange)
+        if (state == State.CONNECTED) {
           await socket.open.event
           socket.sendIntro(123, '\n\t \r\u200b')
-          break
+        }
+      throw 'should cancel early'
+    } catch (err) {
+      err.should.be.instanceof(TypeError)
+      err.message.should.be.eql('Expected to sanitize a string')
+    }
 
-        case State.DEAD:
-          client.socket.readyState.should.equal(CLOSED)
-          await socket.close.event
-          return
-      }
-
+    await socket.close.event
+    client.socket.readyState.should.equal(CLOSED)
   })
 
   it('Kicks non-intros', async () => {
     const client = await server.next
 
-    for await (const state of client.stateChange)
-      switch (state) {
-        case State.CONNECTED:
+    try {
+      for await (const state of client.stateChange)
+        if (state == State.CONNECTED) {
           await socket.open.event
           socket.send(new Uint8Array([0, 1]).buffer)
-          break
+        }
+      throw 'should cancel early'
+    } catch (err) {
+      err.should.be.instanceof(TypeError)
+      err.message.should.startWith('Expected Introduction')
+    }
 
-        case State.DEAD:
-          client.socket.readyState.should.equal(CLOSED)
-          await socket.close.event
-          return
-      }
+    await socket.close.event
+    client.socket.readyState.should.equal(CLOSED)
   })
 
   it('Kicks empty messages', async () => {
     const client = await server.next
 
-    for await (const state of client.stateChange)
-      switch (state) {
-        case State.CONNECTED:
+    try {
+      for await (const state of client.stateChange)
+        if (state == State.CONNECTED) {
           await socket.open.event
           socket.send(new ArrayBuffer(0))
-          break
+        }
+      throw 'should cancel early'
+    } catch (err) {
+      err.should.be.instanceof(TypeError)
+      err.message.should.startWith('Expected Introduction')
+    }
 
-        case State.DEAD:
-          client.socket.readyState.should.equal(CLOSED)
-          await socket.close.event
-          return
-      }
+    await socket.close.event
+    client.socket.readyState.should.equal(CLOSED)
   })
 })

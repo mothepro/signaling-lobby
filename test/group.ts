@@ -60,11 +60,8 @@ describe('Groups', () => {
 
     mySocket.send(new Uint8Array([3, 1, 2]).buffer)
 
-    const [state] = await Promise.all([
-      myClient.stateChange.next,
-      mySocket.close.event,
-    ])
-    state.should.eql(State.DEAD)
+    myClient.stateChange.next.should.rejectedWith(/Expected Group Proposal/)
+    await mySocket.close.event
     mySocket.readyState.should.eql(CLOSED)
   })
 

@@ -37,17 +37,13 @@ export default async function (
 
     /** Activated when a socket successfully connectes to the server. */
     connection = new Emitter<Client>(async client => {
-      for await (const state of client.stateChange)
-        switch (state) {
-          // Prepares a lobby of a specific ID and adds client to it
-          case State.IN_LOBBY:
+      try {
+        // Prepares a lobby of a specific ID and adds client to it
+        for await (const state of client.stateChange)
+          if (state == State.IN_LOBBY)
             Lobby.make(client.lobby!).clientJoin.activate(client)
-            break
-
-          case State.DEAD:
-            disconnections++
-            return
-        }
+      } catch { } // Error handled else where
+      disconnections++
     })
 
   httpServer.once('close', connection.cancel)

@@ -1,5 +1,5 @@
 import Client, { State } from './Client'
-import { SafeEmitter } from 'fancy-emitter'
+import { SafeEmitter, SafeSingleEmitter } from 'fancy-emitter'
 import logger, { Level } from '../util/logger'
 import Group from './Group'
 import { getProposal, ClientID, clientJoin, clientLeave, LobbyID } from './messages'
@@ -12,7 +12,9 @@ export default class Lobby {
   static make(id: LobbyID) {
     if (!Lobby.lobbies.has(id)) {
       logger(Level.INFO, 'Creating lobby', id)
-      Lobby.lobbies.set(id, new Lobby)
+      const lobby = new Lobby
+      lobby.emptied.once(() => Lobby.lobbies.delete(id) && logger(Level.DEBUG, 'Removing empty lobby', id))
+      Lobby.lobbies.set(id, lobby)
     }
     return Lobby.lobbies.get(id)!
   }
@@ -21,6 +23,8 @@ export default class Lobby {
 
   /** All the clients */
   private readonly clients: Map<ClientID, Client> = new Map
+
+  private readonly emptied = new SafeSingleEmitter
 
   readonly clientJoin = new SafeEmitter<Client>(
     ({ id, lobby, name }) => logger(Level.INFO, id, '> joined lobby', lobby, 'as', name),
@@ -54,25 +58,28 @@ export default class Lobby {
               // TODO decide if client should be kicked for this
               if (!participants.length)
                 logger(Level.DEBUG, client.id, '> Tried to make a group without members')
-              
+
               Group.make(client, ...participants)
             }
           } catch (e) {
-            client.failure(e)
+            client.stateChange.deactivate(e)
           }
     },
 
-    // Remove dead clients
-    // TODO remove lobby if it is empty
+    // Remove dead or syncing clients
     async client => {
-      for await (const state of client.stateChange)
-        if (state == State.DEAD || state == State.SYNCING) {
-          this.clients.delete(client.id)
+      try {
+        for await (const state of client.stateChange)
+          if (state == State.SYNCING)
+            break
+      } catch { } // error will be handled else where
 
-          // Notify for client leaving on the next tick to allow dead clients to be removed first
-          setImmediate(() => [...this.clients.values()].map(({ send }) => send(clientLeave(client))))
+      this.clients.delete(client.id)
 
-          return // stop listener, it is done
-        }
+      // Notify for client leaving on the next tick to allow dead clients to be removed first
+      setImmediate(() => [...this.clients.values()].map(({ send }) => send(clientLeave(client))))
+
+      if (!this.clients.size) // clear if I'm the last client
+        this.emptied.activate()
     })
 }

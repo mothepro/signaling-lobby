@@ -102,7 +102,9 @@ export default class Group {
                 this.ack(client.id)
               else
                 this.ready.deactivate(new LeaveError(client.id, `${client.id} doesn't want to join ${[...ids]}`))
-          } catch (_) { } // Ignore, the lobby will handle this
+          } catch (err) {
+            client.stateChange.deactivate(err)
+          }
           break
 
         case State.SYNCING:
@@ -123,9 +125,9 @@ export default class Group {
   }
 
   private async bindState(client: Client) {
-    // Remove client once it is dead so it can be GC'd.
-    for await (const state of client.stateChange)
-      if (state == State.DEAD)
-        return this.ready.deactivate(new LeaveError(client.id, `${client.id} disconnected while in potential group with ${[...this.clients.keys()]}`))
+    try { // Idle until client is dead so it can be GC'd.
+      for await (const _ of client.stateChange);
+    } catch { } // errors handled else where
+    this.ready.deactivate(new LeaveError(client.id, `${client.id} disconnected while in potential group with ${[...this.clients.keys()]}`))
   }
 }

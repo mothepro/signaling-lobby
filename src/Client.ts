@@ -1,5 +1,5 @@
 import * as WebSocket from 'ws'
-import { SafeEmitter } from 'fancy-emitter'
+import { SafeEmitter, Emitter } from 'fancy-emitter'
 import { Name, LobbyID, getIntro } from './messages'
 import logger, { Level } from '../util/logger'
 
@@ -46,22 +46,7 @@ export default class {
   lobby?: LobbyID
 
   /** Activated when changing state. */
-  readonly stateChange: SafeEmitter<State> = new SafeEmitter(
-    newState => logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState),
-    // newState => newState == this.state && this.failure(Error(`state activated but stayed as ${this.state}`)),
-    newState => {
-      switch (this.state = newState) {
-        case State.DEAD:
-          this.socket.close()
-        // fall-thru
-
-        case State.SYNCING:
-          clearTimeout(this.timeout)
-
-          if (this.state != State.DEAD) // why aren't switch statements better... smh
-            this.timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
-      }
-    })
+  readonly stateChange: Emitter<State> = new Emitter
 
   /** Activated when the client talks to the server. */
   readonly message: SafeEmitter<WebSocket.Data> = new SafeEmitter(
@@ -74,7 +59,7 @@ export default class {
           this.lobby = lobby
           this.stateChange.activate(State.IN_LOBBY)
         } catch (err) {
-          this.failure(err)
+          this.stateChange.deactivate(err)
         }
     })
 
@@ -90,20 +75,34 @@ export default class {
     socket.binaryType = 'arraybuffer'
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))
     socket.on('close', () => this.stateChange.activate(State.DEAD))
-    socket.on('error', this.failure)
+    socket.on('error', this.stateChange.deactivate)
     socket.on('message', this.message.activate)
 
     // Already opened, lets activate on the next tick to allow async listeners to be bound
     if (socket.readyState == socket.OPEN)
       setImmediate(() => this.stateChange.activate(State.CONNECTED))
+
+    // Handle state changes
+    this.stateChange.on(newState => {
+      // if (newState == this.state) this.failure(Error(`state activated but stayed as ${this.state}`)),
+      logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState)
+      switch (this.state = newState) {
+        case State.DEAD:
+          this.stateChange.cancel()
+          this.socket.close()
+        // fall-thru
+
+        case State.SYNCING:
+          clearTimeout(this.timeout)
+
+          if (this.state != State.DEAD) // why aren't switch statements better... smh
+            this.timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
+      }
+    }).catch((err: Error) => logger(Level.USEFUL, this.id, '>', err) && this.socket.terminate())
   }
 
   send = async (message: ArrayBuffer | SharedArrayBuffer) =>
     (this.state == State.CONNECTED || this.state == State.IN_LOBBY || this.state == State.SYNCING)
     && logger(Level.TRANSFER, this.id, '<', message)
     && new Promise(resolve => this.socket.send(message, {}, resolve))
-
-  failure = (err: Error) =>
-    logger(Level.USEFUL, 'An error occurred with connection', this.id, err)
-    && this.socket.terminate()
 }

@@ -1,5 +1,5 @@
 import * as WebSocket from 'ws'
-import { SafeSingleEmitter, Emitter } from 'fancy-emitter'
+import { SafeSingleEmitter, Emitter, Listener } from 'fancy-emitter'
 import Client, { State } from './Client'
 import Lobby from './Lobby'
 import openId from '../util/openId'
@@ -13,7 +13,7 @@ const availableId = openId(Max.SHORT)
 /** 
  * Binds an HTTP(S) server to a WebSocket server to create a lobby system.
  * 
- * Once the async function is returned, an emitter is returned which actives with every new client.
+ * Resolves with an emitter which actives with every new client.
  * The emitter is canceled once no more clients are connecting.
  */
 // TODO add DoS prevention use
@@ -29,7 +29,7 @@ export default async function (
   httpServer = createServer(),
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
-) {
+): Promise<Listener<Client>> {
   let disconnections = 0
 
   /** Activated when server is ready to receive connections. */

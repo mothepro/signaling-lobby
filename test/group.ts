@@ -114,7 +114,7 @@ describe('Groups', () => {
       { ids: otherGroupIDs, code: otherCode },
     ] = await Promise.all([
       mySocket.groupFinal.next,
-      otherSocket.groupFinal.next
+      otherSocket.groupFinal.next,
     ])
 
     myCode.should.be.aboveOrEqual(0)
@@ -124,6 +124,39 @@ describe('Groups', () => {
     myGroupIDs.should.containEql(otherId)
     otherGroupIDs.should.have.size(1)
     otherGroupIDs.should.containEql(myId)
+  })
+
+  it('Form a group with valid STAR offer structure', async () => {
+    const lobby = nextLobby(),
+      [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby),
+      [guestSocket, { id: guestId }] = await joinLobby(http, server, 'mothepro', lobby)
+
+    mySocket.sendProposal(true, otherId, guestId)
+    otherSocket.sendProposal(true, myId, guestId)
+    guestSocket.sendProposal(true, myId, otherId)
+
+    console.log('sent')
+    const [
+      { ids: myGroupIDs, cmp: myCmp },
+      { ids: otherGroupIDs, cmp: otherCmp },
+      { ids: guestGroupIDs, cmp: guestCmp },
+    ] = await Promise.all([
+      mySocket.groupFinal.next,
+      otherSocket.groupFinal.next,
+      guestSocket.groupFinal.next,
+    ])
+
+    // TODO This way of testing sucks...
+    const me = myGroupIDs.map(other => myCmp < other),
+      other = otherGroupIDs.map(other => otherCmp < other),
+      guest = guestGroupIDs.map(other => guestCmp < other)
+    
+    // Makes sure that each only sends to offer to one that is waiting for offer
+    // hardcoded since IDs are always ascending atm...
+    me.should.eql([true, true])
+    other.should.eql([true, false])
+    guest.should.eql([false, false])
   })
 
   it('Notify lobby clients when group is formed', async () => {
@@ -155,7 +188,7 @@ describe('Groups', () => {
 
     await Promise.all([
       mySocket.groupFinal.next,
-      otherSocket.groupFinal.next
+      otherSocket.groupFinal.next,
     ])
 
     // I DM other some letters
@@ -183,7 +216,7 @@ describe('Groups', () => {
     otherSocket.sendProposal(true, myClient.id)
     await Promise.all([
       mySocket.groupFinal.next,
-      otherSocket.groupFinal.next
+      otherSocket.groupFinal.next,
     ])
 
     const [myState, otherState] = await Promise.all([

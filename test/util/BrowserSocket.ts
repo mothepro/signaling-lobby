@@ -59,7 +59,8 @@ export default class {
             && data.byteLength % Size.SHORT == Size.CHAR)
             this.groupFinal.activate({
               code: data.readUInt32LE(Size.CHAR),
-              ids: getClientIDs(data, Size.CHAR + Size.INT),
+              cmp: data.readUInt16LE(Size.CHAR + Size.INT),
+              ids: getClientIDs(data, Size.CHAR + Size.SHORT + Size.INT),
             })
           break
       }
@@ -81,6 +82,7 @@ export default class {
   /** Activated when a group finalization message is received. */
   readonly groupFinal = new SafeEmitter<{
     ids: ClientID[]
+    cmp: ClientID
     code: number
   }>()
 

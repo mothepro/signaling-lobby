@@ -41,7 +41,9 @@ export default class Group {
   readonly ready = new SingleEmitter(
     () => logger(Level.INFO, ...this.clients.keys(), 'have finalized a group'),
     () => [...this.clients].map(([, { stateChange }]) => stateChange.activate(State.SYNCING)),
-    () => [...this.clients].map(([id, { send }]) => send(groupFinal(this.code, ...this.idsWithout(id))))) // browser doesn't know their own id
+    () => [...this.clients].map(([id, { send }]) =>
+      // browser doesn't know their own id, but we give it to them first as a comparator.
+      send(groupFinal(this.code, id, ...this.idsWithout(id)))))
 
   /** All the client IDs in this group without `ids`. */
   private idsWithout(...ids: ClientID[]) {
@@ -87,7 +89,7 @@ export default class Group {
         for (const [id, { send }] of this.clients)
           if (id != e.id)
             // ackr will go first & browser doesn't know their own id
-            send(groupLeave(e.id, ...this.idsWithout(e.id, id))) 
+            send(groupLeave(e.id, ...this.idsWithout(e.id, id)))
       })
       .finally(() => Group.groups.delete(Group.hashIds(...this.clients.keys())))
   }

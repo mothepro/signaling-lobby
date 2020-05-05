@@ -2,8 +2,9 @@ import Client, { State } from './Client'
 import { SafeEmitter, SafeSingleEmitter } from 'fancy-emitter'
 import logger, { Level } from '../util/logger'
 import Group from './Group'
-import { getProposal, ClientID, clientJoin, clientLeave, LobbyID } from './messages'
+import { ClientID, clientJoin, clientLeave, LobbyID } from './messages'
 
+// TODO this doesn't need to be a class
 export default class Lobby {
   /** Map that points to all the lobbies with clients still in it. */
   private static lobbies: Map<LobbyID, Lobby> = new Map
@@ -26,6 +27,7 @@ export default class Lobby {
 
   private readonly emptied = new SafeSingleEmitter
 
+  // TODO this is overkill
   readonly clientJoin = new SafeEmitter<Client>(
     ({ id, lobby, name }) => logger(Level.INFO, id, '> joined lobby', lobby, 'as', name),
 

@@ -42,7 +42,7 @@ export default async function (
         for await (const state of client.stateChange)
           if (state == State.IN_LOBBY)
             Lobby.make(client.lobby!).clientJoin.activate(client)
-      } catch { } // Error handled else where
+      } catch { } // Handled in Client's constructor 
       disconnections++
     })
 

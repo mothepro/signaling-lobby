@@ -34,7 +34,6 @@ export interface Intro {
   lobby: LobbyID
 }
 
-// TODO use a STATUS bit to determine data type
 export function getIntro(input: Data): Intro {
   const data = dataToView(input, 'Introduction', view => view.byteLength > Size.INT)
   return {

@@ -52,7 +52,8 @@ export default class Group {
     // This must be done since async isn't allowed in constructor & binds can't "overlap".
     for (const [, client] of this.clients) {
       this.bindState(client)
-      this.bindMessage(client)
+      this.bindProposal(client)
+      this.bindSyncData(client)
     }
 
     logger(Level.INFO, initiator.id, '> proposed group to include', ...this.clients.keys())
@@ -88,46 +89,40 @@ export default class Group {
           send(groupJoin(ackerId, ...this.idsWithout(ackerId, id))) // ackr will go first & browser doesn't know their own id
   }
 
-  private async bindMessage(client: Client) {
-    for await (const data of client.message)
-      switch (client.state) {
-        case State.IN_LOBBY:
-          try {
-            const { approve, ids } = getProposal(data)
-            ids.add(client.id)
+  private async bindProposal(client: Client) {
+    for await (const { approve, ids } of client.proposal) {
+      ids.add(client.id)
 
-            // Only handle if group belongs to us, and only us
-            if (ids.size == this.clients.size && ![...ids].filter(id => !this.clients.has(id)).length)
-              if (approve)
-                this.ack(client.id)
-              else
-                this.ready.deactivate(new LeaveError(client.id, `${client.id} doesn't want to join ${[...ids]}`))
-          } catch (err) {
-            client.stateChange.deactivate(err)
-          }
-          break
+      // Only handle if group belongs to us, and only us
+      if (ids.size == this.clients.size && ![...ids].filter(id => !this.clients.has(id)).length)
+        if (approve)
+          this.ack(client.id)
+        else
+          this.ready.deactivate(new LeaveError(client.id, `${client.id} doesn't want to join ${[...ids]}`))
+    }
+  }
 
-        case State.SYNCING:
-          const { to, content } = getSyncBuffer(data)
+  private async bindSyncData(client: Client) {
+    try {
+      for await (const { to, content } of client.message) {
+        if (to == client.id)
+          throw Error(`${client.id}> attempted sending data to themself`)
 
-          if (to == client.id)
-            throw Error(`${client.id}> attempted sending data to themself`)
+        if (!this.clients.has(to))
+          throw Error(`${client.id}> attempted sending data to non exsistent client ${to}`)
 
-          if (!this.clients.has(to))
-            throw Error(`${client.id}> attempted sending data to non exsistent client ${to}`)
-
-          content.setUint16(0, client.id, true) // override who this content is for
-          for (const [id, { send }] of this.clients)
-            if (id == to)
-              send(content.buffer)
-          break
+        content.setUint16(0, client.id, true) // transform the `to` into a `from`
+        this.clients.get(to)?.send(content.buffer)
       }
+    } catch (err) {
+      client.stateChange.deactivate(err)
+    }
   }
 
   private async bindState(client: Client) {
     try { // Idle until client is dead so it can be GC'd.
       for await (const _ of client.stateChange);
-    } catch { } // errors handled else where
+    } catch { } // Handled in Client's constructor
     this.ready.deactivate(new LeaveError(client.id, `${client.id} disconnected while in potential group with ${[...this.clients.keys()]}`))
   }
 }

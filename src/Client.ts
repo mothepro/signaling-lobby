@@ -1,6 +1,6 @@
 import * as WebSocket from 'ws'
-import { SafeEmitter, Emitter } from 'fancy-emitter'
-import { Name, LobbyID, getIntro } from './messages'
+import { SafeEmitter, Emitter, SafeSingleEmitter } from 'fancy-emitter'
+import { Name, LobbyID, getIntro, Intro, Proposal, getProposal, SyncBuffer, getSyncBuffer } from './messages'
 import logger, { Level } from '../util/logger'
 
 export const enum State {
@@ -48,20 +48,43 @@ export default class {
   /** Activated when changing state. */
   readonly stateChange: Emitter<State> = new Emitter
 
+  /** Activated when the client sends an intro to the server. */
+  readonly intro = new SafeSingleEmitter<Intro>(({ name, lobby }) => {
+    this.name = name.substr(0, this.maxNameLength)
+    this.lobby = lobby
+    this.stateChange.activate(State.IN_LOBBY)
+  })
+
+  /** Activated when the client sends a group proposal to the server. */
+  readonly proposal = new SafeEmitter<Proposal>()
+
+  /** Activated when the client sends data after syncing to the server. */
+  readonly message = new SafeEmitter<SyncBuffer>()
+
   /** Activated when the client talks to the server. */
-  readonly message: SafeEmitter<WebSocket.Data> = new SafeEmitter(
-    data => logger(Level.TRANSFER, this.id, '>', data),
-    data => {
-      if (this.state == State.CONNECTED)
-        try {
-          const { name, lobby } = getIntro(data)
-          this.name = name.substr(0, this.maxNameLength)
-          this.lobby = lobby
-          this.stateChange.activate(State.IN_LOBBY)
-        } catch (err) {
-          this.stateChange.deactivate(err)
-        }
-    })
+  private readonly incoming: SafeEmitter<WebSocket.Data> = new SafeEmitter(data => {
+    logger(Level.TRANSFER, this.id, '>', data)
+    try {
+      switch (this.state) {
+        case State.CONNECTED:
+          this.intro.activate(getIntro(data))
+          break
+        
+        case State.IN_LOBBY:
+          this.proposal.activate(getProposal(data))
+          break
+
+        case State.SYNCING:
+          this.message.activate(getSyncBuffer(data))
+          break
+
+        default:
+          throw Error(`${this.id} in state ${this.state} sent unexpected data ${data}`)
+      }
+    } catch (err) {
+      this.stateChange.deactivate(err)
+    }
+  })
 
   constructor(
     /** An ID that is unique to this client. */
@@ -76,7 +99,7 @@ export default class {
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))
     socket.on('close', () => this.stateChange.activate(State.DEAD))
     socket.on('error', this.stateChange.deactivate)
-    socket.on('message', this.message.activate)
+    socket.on('message', this.incoming.activate)
 
     // Already opened, lets activate on the next tick to allow async listeners to be bound
     if (socket.readyState == socket.OPEN)
@@ -89,6 +112,7 @@ export default class {
       switch (this.state = newState) {
         case State.DEAD:
           this.stateChange.cancel()
+          // TODO close all other emitters to safe resources?
           this.socket.close()
         // fall-thru
 

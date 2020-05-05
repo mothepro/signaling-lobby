@@ -40,30 +40,24 @@ export default class Lobby {
 
     // Message from browser
     async (client) => {
-      for await (const data of client.message)
-        if (client.state == State.IN_LOBBY)
-          try {
-            const { approve, ids } = getProposal(data)
-            if (approve) {
-              const participants = []
+      for await (const { approve, ids } of client.proposal)
+        if (approve) {
+          const participants = []
 
-              // TODO, make this a one liner
-              for (const clientId of ids)
-                if (this.clients.has(clientId) && clientId != client.id)
-                  participants.push(this.clients.get(clientId)!)
-                else
-                  // TODO decide if client should be kicked for this
-                  logger(Level.DEBUG, client.id, '> tried to add some non-existent members to group', ids)
-
+          // TODO, make this a one liner
+          for (const clientId of ids)
+            if (this.clients.has(clientId) && clientId != client.id)
+              participants.push(this.clients.get(clientId)!)
+            else
               // TODO decide if client should be kicked for this
-              if (!participants.length)
-                logger(Level.DEBUG, client.id, '> Tried to make a group without members')
+              logger(Level.DEBUG, client.id, '> tried to add some non-existent members to group', ids)
 
-              Group.make(client, ...participants)
-            }
-          } catch (e) {
-            client.stateChange.deactivate(e)
-          }
+          // TODO decide if client should be kicked for this
+          if (!participants.length)
+            logger(Level.DEBUG, client.id, '> Tried to make a group without members')
+
+          Group.make(client, ...participants)
+        }
     },
 
     // Remove dead or syncing clients
@@ -72,7 +66,7 @@ export default class Lobby {
         for await (const state of client.stateChange)
           if (state == State.SYNCING)
             break
-      } catch { } // error will be handled else where
+      } catch { } // Handled in Client's constructor
 
       this.clients.delete(client.id)
 

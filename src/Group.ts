@@ -43,31 +43,6 @@ export default class Group {
     () => [...this.clients].map(([, { stateChange }]) => stateChange.activate(State.SYNCING)),
     () => [...this.clients].map(([id, { send }]) => send(groupFinal(this.code, ...this.idsWithout(id))))) // browser doesn't know their own id
 
-  /** Create and clean up a group once it is no longer needed. */
-  private constructor(initiator: Client, ...clients: Client[]) {
-    this.clients.set(initiator.id, initiator)
-    for (const client of clients)
-      this.clients.set(client.id, client)
-
-    // This must be done since async isn't allowed in constructor & binds can't "overlap".
-    for (const [, client] of this.clients) {
-      this.bindState(client)
-      this.bindProposal(client)
-      this.bindSyncData(client)
-    }
-
-    logger(Level.INFO, initiator.id, '> proposed group to include', ...this.clients.keys())
-    this.ack(initiator.id)
-
-    // Notify all other clients when a group fails.
-    this.ready.event.catch((e: LeaveError) => {
-      for (const [id, { send }] of this.clients)
-        if (id != e.id)
-          send(groupLeave(e.id, ...this.idsWithout(e.id, id))) // ackr will go first & browser doesn't know their own id
-    })
-      .finally(() => Group.groups.delete(Group.hashIds(...this.clients.keys())))
-  }
-
   /** All the client IDs in this group without `ids`. */
   private idsWithout(...ids: ClientID[]) {
     const all = new Set(this.clients.keys())
@@ -86,7 +61,35 @@ export default class Group {
     else
       for (const [id, { send }] of this.clients)
         if (id != ackerId)
-          send(groupJoin(ackerId, ...this.idsWithout(ackerId, id))) // ackr will go first & browser doesn't know their own id
+          // ackr will go first & browser doesn't know their own id
+          send(groupJoin(ackerId, ...this.idsWithout(ackerId, id)))
+  }
+
+  /** Create and clean up a group once it is no longer needed. */
+  private constructor(initiator: Client, ...clients: Client[]) {
+    this.clients.set(initiator.id, initiator)
+    for (const client of clients)
+      this.clients.set(client.id, client)
+
+    // This must be done since async isn't allowed in constructor & binds can't "overlap".
+    for (const [, client] of this.clients) {
+      this.bindState(client)
+      this.bindProposal(client)
+      this.bindMessage(client)
+    }
+
+    logger(Level.INFO, initiator.id, '> proposed group to include', ...this.clients.keys())
+    this.ack(initiator.id)
+
+    // Notify all other clients when a group fails.
+    this.ready.event
+      .catch((e: LeaveError) => {
+        for (const [id, { send }] of this.clients)
+          if (id != e.id)
+            // ackr will go first & browser doesn't know their own id
+            send(groupLeave(e.id, ...this.idsWithout(e.id, id))) 
+      })
+      .finally(() => Group.groups.delete(Group.hashIds(...this.clients.keys())))
   }
 
   private async bindProposal(client: Client) {
@@ -102,7 +105,7 @@ export default class Group {
     }
   }
 
-  private async bindSyncData(client: Client) {
+  private async bindMessage(client: Client) {
     try {
       for await (const { to, content } of client.message) {
         if (to == client.id)

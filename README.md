@@ -41,8 +41,8 @@ Finally, Run the server and set the `hostname` (`-h`) to the external IP.
 npx @mothepro/signaling-lobby -vvvvv \
 -h ... \
 -p 9000 \
---key /etc/letsencrypt/live/ws.parkshade.com/privkey.pem \
---cert /etc/letsencrypt/live/ws.parkshade.com/fullchain.pem
+--key /etc/letsencrypt/live/<DOMAIN>/privkey.pem \
+--cert /etc/letsencrypt/live/<DOMAIN>/fullchain.pem
 ```
 
 If access to the `*.pem` files is restricted the server be run in `sudo` mode.

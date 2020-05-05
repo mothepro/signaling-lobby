@@ -30,20 +30,21 @@ export default async function (
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
 ): Promise<Listener<Client> & { count: number }> { // TODO upgrade fancy-emitter
-  let disconnections = 0
+  let totalConnections = 0
 
   /** Activated when server is ready to receive connections. */
   const ready = new SafeSingleEmitter,
 
     /** Activated when a socket successfully connectes to the server. */
     connection = new Emitter<Client>(async client => {
+      totalConnections++
       try {
         // Prepares a lobby of a specific ID and adds client to it
         for await (const state of client.stateChange)
           if (state == State.IN_LOBBY)
             Lobby.make(client.lobby!).clientJoin.activate(client)
       } catch { } // Handled in Client's constructor 
-      disconnections++
+      totalConnections--
     })
 
   httpServer.once('close', connection.cancel)
@@ -54,7 +55,7 @@ export default async function (
     ready.activate()
 
   httpServer.on('upgrade', (request, socket, head) => {
-    if (maxConnections && connection.count - disconnections >= maxConnections) {
+    if (maxConnections && connection.count - totalConnections >= maxConnections) {
       logger(Level.USEFUL, 'This server is already at its max connections', maxConnections)
       socket.destroy()
     } else

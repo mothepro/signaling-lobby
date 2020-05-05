@@ -69,7 +69,7 @@ export default class {
         case State.CONNECTED:
           this.intro.activate(getIntro(data))
           break
-        
+
         case State.IN_LOBBY:
           this.proposal.activate(getProposal(data))
           break
@@ -85,6 +85,11 @@ export default class {
       this.stateChange.deactivate(err)
     }
   })
+
+  readonly send = async (message: ArrayBuffer | SharedArrayBuffer) =>
+    (this.state == State.CONNECTED || this.state == State.IN_LOBBY || this.state == State.SYNCING)
+    && logger(Level.TRANSFER, this.id, '<', message)
+    && new Promise(resolve => this.socket.send(message, {}, resolve))
 
   constructor(
     /** An ID that is unique to this client. */
@@ -105,28 +110,33 @@ export default class {
     if (socket.readyState == socket.OPEN)
       setImmediate(() => this.stateChange.activate(State.CONNECTED))
 
-    // Handle state changes
-    this.stateChange.on(newState => {
-      // if (newState == this.state) this.failure(Error(`state activated but stayed as ${this.state}`)),
-      logger(Level.DEBUG, this.id, '> changed state', this.state, '->', newState)
-      switch (this.state = newState) {
-        case State.DEAD:
-          this.stateChange.cancel()
-          // TODO close all other emitters to safe resources?
-          this.socket.close()
-        // fall-thru
-
-        case State.SYNCING:
-          clearTimeout(this.timeout)
-
-          if (this.state != State.DEAD) // why aren't switch statements better... smh
-            this.timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
-      }
-    }).catch((err: Error) => logger(Level.USEFUL, this.id, '>', err) && this.socket.terminate())
+    // Async not allowed in constructor
+    this.bindState()
   }
 
-  send = async (message: ArrayBuffer | SharedArrayBuffer) =>
-    (this.state == State.CONNECTED || this.state == State.IN_LOBBY || this.state == State.SYNCING)
-    && logger(Level.TRANSFER, this.id, '<', message)
-    && new Promise(resolve => this.socket.send(message, {}, resolve))
+  private async bindState() {
+    try {
+      for await (const state of this.stateChange) {
+        logger(Level.DEBUG, this.id, '> changed state', this.state, '->', state)
+        if (state != this.state)
+          switch (this.state = state) {
+            case State.DEAD:
+              this.stateChange.cancel()
+              // TODO close all other emitters to safe resources?
+              this.socket.close()
+            // fall-thru
+
+            case State.SYNCING:
+              clearTimeout(this.timeout)
+
+              if (this.state != State.DEAD) // why aren't switch statements better... smh
+                this.timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
+          } else
+          this.stateChange.deactivate(Error(`state activated but stayed as ${this.state}`))
+      }
+    } catch (err) {
+      logger(Level.USEFUL, this.id, '>', err)
+      this.socket.terminate()
+    }
+  }
 }

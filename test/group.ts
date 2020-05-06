@@ -42,9 +42,10 @@ describe('Groups', () => {
 
     mySocket.exit()
 
-    await myClient.stateChange.next
+    await myClient.stateChange.on(() => { }) // listener finished
     const { approval, ids } = await otherSocket.groupChange.next
 
+    myClient.stateChange.isAlive.should.be.false()
     approval.should.be.false()
     ids.should.have.size(1)
     ids.should.containEql(myClient.id)
@@ -151,7 +152,7 @@ describe('Groups', () => {
     const me = myGroupIDs.map(other => myCmp < other),
       other = otherGroupIDs.map(other => otherCmp < other),
       guest = guestGroupIDs.map(other => guestCmp < other)
-    
+
     // Makes sure that each only sends to offer to one that is waiting for offer
     // hardcoded since IDs are always ascending atm...
     me.should.eql([true, true])
@@ -215,19 +216,17 @@ describe('Groups', () => {
     mySocket.sendProposal(true, otherClient.id)
     otherSocket.sendProposal(true, myClient.id)
     await Promise.all([
+      // Group made
       mySocket.groupFinal.next,
       otherSocket.groupFinal.next,
-    ])
 
-    const [myState, otherState] = await Promise.all([
-      myClient.stateChange.next,
-      otherClient.stateChange.next,
+      // Sockets closed
       mySocket.close.event,
       otherSocket.close.event,
     ])
 
-    myState.should.eql(State.DEAD)
-    otherState.should.eql(State.DEAD)
+    myClient.stateChange.isAlive.should.be.false()
+    otherClient.stateChange.isAlive.should.be.false()
     mySocket.readyState.should.eql(CLOSED)
     otherSocket.readyState.should.eql(CLOSED)
   })

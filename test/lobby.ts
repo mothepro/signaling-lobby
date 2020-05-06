@@ -48,9 +48,10 @@ describe('Lobby', () => {
       [socket2, client2] = await joinLobby(http, server, 'momo', lobby)
 
     socket2.exit()
-    await client2.stateChange.next
+    await client2.stateChange.on(() => { }) // listener complete
     const { join, id } = await socket.clientPresence.next
 
+    client2.stateChange.isAlive.should.be.false()
     join.should.be.false()
     id.should.eql(client2.id)
   })

@@ -24,18 +24,9 @@ export const enum State {
    * Should only send a `offer` & `answer` to sync SDPs.
    */
   SYNCING,
-
-  /**
-   * The underlying socket is either closing or closed.
-   * This Client is ready to be cleaned up.
-   */
-  DEAD,
 }
 
 export default class {
-  /** Handle to kill this client after timeout. */
-  private timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.idleTimeout)
-
   /** Current state of connection. */
   state = State.ONLINE
 
@@ -47,6 +38,9 @@ export default class {
 
   /** Activated when changing state. */
   readonly stateChange: Emitter<State> = new Emitter
+
+  /** Handle to kill this client after timeout. */
+  private timeout = setTimeout(this.stateChange.cancel, this.idleTimeout)
 
   /** Activated when the client sends an intro to the server. */
   readonly intro = new SafeSingleEmitter<Intro>(({ name, lobby }) => {
@@ -102,7 +96,7 @@ export default class {
   ) {
     socket.binaryType = 'arraybuffer'
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))
-    socket.on('close', () => this.stateChange.activate(State.DEAD))
+    socket.on('close', this.stateChange.cancel)
     socket.on('error', this.stateChange.deactivate)
     socket.on('message', this.incoming.activate)
 
@@ -118,22 +112,16 @@ export default class {
     try {
       for await (const state of this.stateChange) {
         logger(Level.DEBUG, this.id, '> changed state', this.state, '->', state)
-        if (state != this.state)
-          switch (this.state = state) {
-            case State.DEAD:
-              this.stateChange.cancel()
-              // TODO close all other emitters to safe resources?
-              this.socket.close()
-            // fall-thru
-
-            case State.SYNCING:
-              clearTimeout(this.timeout)
-
-              if (this.state != State.DEAD) // why aren't switch statements better... smh
-                this.timeout = setTimeout(() => this.stateChange.activate(State.DEAD), this.syncTimeout)
-          } else
-          this.stateChange.deactivate(Error(`state activated but stayed as ${this.state}`))
+        this.state = state
+        if (state == State.SYNCING) {
+          clearTimeout(this.timeout)
+          this.timeout = setTimeout(this.stateChange.cancel, this.syncTimeout)
+        }
       }
+
+      // TODO close all other emitters to safe resources?
+      clearTimeout(this.timeout)
+      this.socket.close()
     } catch (err) {
       logger(Level.USEFUL, this.id, '>', err)
       this.socket.terminate()

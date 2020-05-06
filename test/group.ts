@@ -137,7 +137,6 @@ describe('Groups', () => {
     otherSocket.sendProposal(true, myId, guestId)
     guestSocket.sendProposal(true, myId, otherId)
 
-    console.log('sent')
     const [
       { ids: myGroupIDs, cmp: myCmp },
       { ids: otherGroupIDs, cmp: otherCmp },

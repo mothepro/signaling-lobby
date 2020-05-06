@@ -1,7 +1,7 @@
 import * as WebSocket from 'ws'
 import { SafeSingleEmitter, Emitter, Listener } from 'fancy-emitter'
 import Client, { State } from './Client'
-import Lobby from './Lobby'
+import addToLobby from './Lobby'
 import openId from '../util/openId'
 import logger, { Level } from '../util/logger'
 import { Max } from '../util/constants'
@@ -42,7 +42,7 @@ export default async function (
         // Prepares a lobby of a specific ID and adds client to it
         for await (const state of client.stateChange)
           if (state == State.IN_LOBBY)
-            Lobby.make(client.lobby!).clientJoin.activate(client)
+            addToLobby(client.lobby!, client)
       } catch { } // Handled in Client's constructor 
       totalConnections--
     })

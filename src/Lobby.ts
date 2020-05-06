@@ -1,81 +1,71 @@
 import Client, { State } from './Client'
-import { SafeEmitter, SafeSingleEmitter } from 'fancy-emitter'
 import logger, { Level } from '../util/logger'
 import Group from './Group'
-import { ClientID, clientJoin, clientLeave, LobbyID } from './messages'
+import { clientJoin, clientLeave, LobbyID, ClientID } from './messages'
 
-// TODO this doesn't need to be a class
-export default class Lobby {
-  /** Map that points to all the lobbies with clients still in it. */
-  private static lobbies: Map<LobbyID, Lobby> = new Map
+/** Map that points to all the lobbies with clients still in it. */
+const lobbies: Map<LobbyID, Set<Client>> = new Map
 
-  /** Gets a lobby with the given ID. Creates a new Lobby if one doesn't exist. */
-  static make(id: LobbyID) {
-    if (!Lobby.lobbies.has(id)) {
-      logger(Level.INFO, 'Creating lobby', id)
-      const lobby = new Lobby
-      lobby.emptied.once(() => Lobby.lobbies.delete(id) && logger(Level.DEBUG, 'Removing empty lobby', id))
-      Lobby.lobbies.set(id, lobby)
-    }
-    return Lobby.lobbies.get(id)!
+/** All the clients in lobbies */
+const clients: Map<ClientID, Client> = new Map
+
+/** Gets a lobby with the given ID. Creates a new Lobby if one doesn't exist. */
+export default async function (lobbyId: LobbyID, client: Client) {
+  if (!lobbies.has(lobbyId)) {
+    logger(Level.INFO, 'Creating lobby', lobbyId)
+    lobbies.set(lobbyId, new Set)
   }
 
-  private constructor() { }
+  logger(Level.INFO, client.id, '> joined lobby', lobbyId, 'as', client.name)
+  const members = lobbies.get(lobbyId)!
 
-  /** All the clients */
-  private readonly clients: Map<ClientID, Client> = new Map
+  // Tell everyone else about me & tell me about everyone else
+  for (const other of members) {
+    other.send(clientJoin(client))
+    client.send(clientJoin(other))
+  }
 
-  private readonly emptied = new SafeSingleEmitter
+  // Add new client to list
+  members.add(client)
+  clients.set(client.id, client)
 
-  // TODO this is overkill
-  readonly clientJoin = new SafeEmitter<Client>(
-    ({ id, lobby, name }) => logger(Level.INFO, id, '> joined lobby', lobby, 'as', name),
+  client.proposal.on(({ approve, ids }) => { // use `on` since `for-await-of` can't overlap
+    if (approve) {
+      const participants = []
 
-    // Tell everyone else about me
-    client => [...this.clients].map(([, { send }]) => send(clientJoin(client))),
-
-    // Tell me about everyone else
-    ({ send }) => [...this.clients].map(([, other]) => send(clientJoin(other))),
-
-    // Add new client to list
-    client => this.clients.set(client.id, client),
-
-    // Message from browser
-    async (client) => {
-      for await (const { approve, ids } of client.proposal)
-        if (approve) {
-          const participants = []
-
-          // TODO, make this a one liner
-          for (const clientId of ids)
-            if (this.clients.has(clientId) && clientId != client.id)
-              participants.push(this.clients.get(clientId)!)
-            else
-              // TODO decide if client should be kicked for this
-              logger(Level.DEBUG, client.id, '> tried to add some non-existent members to group', ids)
-
+      // TODO, make this a one liner
+      for (const clientId of ids)
+        if (clients.has(clientId) && clientId != client.id)
+          participants.push(clients.get(clientId)!)
+        else
           // TODO decide if client should be kicked for this
-          if (!participants.length)
-            logger(Level.DEBUG, client.id, '> Tried to make a group without members')
+          logger(Level.DEBUG, client.id, '> tried to add some non-existent members to group', ids)
 
-          Group.make(client, ...participants)
-        }
-    },
+      // TODO decide if client should be kicked for this
+      if (!participants.length)
+        logger(Level.DEBUG, client.id, '> Tried to make a group without members')
 
-    // Remove dead or syncing clients
-    async client => {
-      try {
-        for await (const state of client.stateChange)
-          if (state == State.SYNCING)
-            break
-      } catch { } // Handled in Client's constructor
+      Group.make(client, ...participants)
+    }
+  })
 
-      this.clients.delete(client.id)
+  // Remove dead or syncing clients
+  try {
+    for await (const state of client.stateChange)
+      if (state == State.SYNCING)
+        break
+  } catch { } // Handled in Client's constructor
 
-      // Notify for client leaving on the next tick to allow dead clients to be removed first
-      setImmediate(() => [...this.clients.values()].map(({ send }) => send(clientLeave(client))))
+  members.delete(client)
 
-      if (!this.clients.size) // clear if I'm the last client
-        this.emptied.activate()
-    })
+  // Notify for client leaving on the next tick to allow dead clients to be removed first
+  setImmediate(() => {
+    for (const other of members)
+      other.send(clientLeave(client))
+  })
+
+  if (!members.size) {
+    logger(Level.DEBUG, 'Removing empty lobby', lobbyId)
+    lobbies.delete(lobbyId)
+  }
 }

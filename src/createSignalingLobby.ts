@@ -29,7 +29,7 @@ export default async function (
   httpServer = createServer(),
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
-): Promise<Listener<Client> & { count: number }> { // TODO upgrade fancy-emitter
+): Promise<Listener<Client>> { // TODO upgrade fancy-emitter
   let totalConnections = 0
 
   /** Activated when server is ready to receive connections. */

@@ -7,7 +7,7 @@ import milliseconds from './util/delay'
 import Client, { State } from '../src/Client'
 
 describe('Server', () => {
-  let server: Listener<Client> & { count: number }, // TODO upgrade fancy-emitter
+  let server: Listener<Client>,
     socket: BrowserSocket,
     http: Server
 

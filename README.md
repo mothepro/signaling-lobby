@@ -62,6 +62,5 @@ The Socket Server is exposed as an NPM module so it can be imported to allow for
 
 + add DoS prevention (potenetially using 'headers' event)
 + Simplify / Remove redundant Group class
-+ Refactor the Lobby
 + Improve system to determine who makes an offer
 + Export helpers for parsing buffers in util (Make `BrowserSocket` public)

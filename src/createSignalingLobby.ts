@@ -29,7 +29,7 @@ export default async function (
   httpServer = createServer(),
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
-): Promise<Listener<Client>> { // TODO upgrade fancy-emitter
+): Promise<Listener<Client>> {
   let totalConnections = 0
 
   /** Activated when server is ready to receive connections. */
@@ -55,7 +55,7 @@ export default async function (
     ready.activate()
 
   httpServer.on('upgrade', (request, socket, head) => {
-    if (maxConnections && connection.count - totalConnections >= maxConnections) {
+    if (maxConnections && totalConnections >= maxConnections) {
       logger(Level.USEFUL, 'This server is already at its max connections', maxConnections)
       socket.destroy()
     } else

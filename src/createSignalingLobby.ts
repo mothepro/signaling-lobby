@@ -3,7 +3,7 @@ import { SafeSingleEmitter, Emitter, Listener } from 'fancy-emitter'
 import Client, { State } from './Client'
 import addToLobby from './Lobby'
 import openId from '../util/openId'
-import logger, { Level } from '../util/logger'
+import { logErr } from '../util/logger'
 import { Max } from '../util/constants'
 import { createServer } from 'http'
 
@@ -57,7 +57,7 @@ export default async function (
 
   httpServer.on('upgrade', (request, socket, head) => {
     if (maxConnections && totalConnections >= maxConnections) {
-      logger(Level.USEFUL, 'This server is already at its max connections', maxConnections)
+      logErr('This server is already at its max connections', maxConnections)
       socket.destroy()
     } else
       socketServer.handleUpgrade(request, socket, head, webSocket => connection.activate(

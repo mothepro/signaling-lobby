@@ -4,7 +4,7 @@ import { promisify } from 'util'
 import { createServer } from 'https'
 import { createServer as createUnsecureServer } from 'http'
 import { verbose, hostname, port, maxLength, maxSize, maxConnections, idleTimeout, syncTimeout, key, cert } from './args'
-import logger, { Level, setLevel } from '../util/logger'
+import logger, { Level, setLevel, logErr } from '../util/logger'
 import createSignalingLobby from '../src/createSignalingLobby'
 const readFileAsync = promisify(readFile)
 
@@ -27,7 +27,7 @@ try {
   for await (const _ of connection)
     logger(Level.TRANSFER, 'A new connection to the server has been made')
 } catch (err) {
-  logger(Level.SEVERE, 'An error occurred with the signaling server', err)
+  logErr('An error occurred with the signaling server', err)
 } finally {
   logger(Level.USEFUL, 'Shutting down the signaling server')
 }

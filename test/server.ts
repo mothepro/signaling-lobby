@@ -141,4 +141,23 @@ describe('Server', () => {
     await socket.close.event
     client.socket.readyState.should.equal(CLOSED)
   })
+
+  it('Kicks big messages messages', async () => {
+    const client = await server.next
+
+    try {
+      for await (const state of client.stateChange)
+        if (state == State.CONNECTED) {
+          await socket.open.event
+          socket.send(new ArrayBuffer(1000))
+        }
+      throw 'should cancel early'
+    } catch (err) {
+      err.should.be.instanceof(TypeError)
+      err.message.should.startWith('Expected Introduction')
+    }
+
+    await socket.close.event
+    client.socket.readyState.should.equal(CLOSED)
+  })
 })

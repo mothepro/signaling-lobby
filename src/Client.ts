@@ -1,7 +1,7 @@
 import * as WebSocket from 'ws'
 import { SafeEmitter, Emitter, SafeSingleEmitter } from 'fancy-emitter'
 import { Name, LobbyID, getIntro, Intro, Proposal, getProposal, SyncBuffer, getSyncBuffer } from './messages'
-import logger, { Level } from '../util/logger'
+import logger, { Level, logErr } from '../util/logger'
 
 export const enum State {
   /** Client that has just successfully initiated a connection. */
@@ -133,7 +133,7 @@ export default class {
       clearTimeout(this.timeout)
       this.socket.close()
     } catch (err) {
-      logger(Level.USEFUL, this.id, '>', err)
+      logErr(this.id, err)
       this.socket.terminate()
     }
   }

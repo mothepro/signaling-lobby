@@ -18,9 +18,10 @@ const availableId = openId(Max.SHORT)
  */
 // TODO add DoS prevention use
 export default async function (
-  { maxConnections, maxLength, idleTimeout, syncTimeout }:
+  { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout }:
     {
       maxConnections: number
+      maxSize: number
       maxLength: number
       idleTimeout: number
       syncTimeout: number
@@ -60,7 +61,7 @@ export default async function (
       socket.destroy()
     } else
       socketServer.handleUpgrade(request, socket, head, webSocket => connection.activate(
-        new Client(availableId.next().value, webSocket as WebSocket, maxLength, idleTimeout, syncTimeout)))
+        new Client(availableId.next().value, webSocket as WebSocket, maxSize, maxLength, idleTimeout, syncTimeout)))
   })
 
   await ready.event

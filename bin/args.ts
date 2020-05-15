@@ -8,6 +8,7 @@ export const {
   key,
   cert,
   'max-length': maxLength,
+  'max-size': maxSize,
   'max-connections': maxConnections,
   'idle-timeout': idleTimeout,
   'sync-timeout': syncTimeout,
@@ -17,10 +18,18 @@ export const {
   .usage(`${description}\nUsage: ${name} [options]`)
   .count('verbose')
   .alias('v', 'verbose')
+  .option('max-size', {
+    type: 'number',
+    description: 'The max amount of data a user can send per message',
+    default: 10 * 2 ** 10,
+    defaultDescription: '10 kilobytes',
+    demandOption: true,
+  })
   .option('max-length', {
     type: 'number',
     description: 'The max length of a user\'s name',
-    default: 15,
+    default: 100,
+    defaultDescription: 'Always capped by the `max-size`',
     demandOption: true,
   })
   .option('max-connections', {

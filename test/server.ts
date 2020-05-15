@@ -15,6 +15,7 @@ describe('Server', () => {
     http = createServer().listen()
     server = await createSignalingLobby({
       maxConnections: 5,
+      maxSize: 100,
       maxLength: 100,
       idleTimeout: 500,
       syncTimeout: 100,
@@ -114,8 +115,27 @@ describe('Server', () => {
         }
       throw 'should cancel early'
     } catch (err) {
-      err.should.be.instanceof(TypeError)
-      err.message.should.startWith('Expected Introduction')
+      err.should.be.instanceof(Error)
+      err.message.should.match(/attempted to send 0 bytes/)
+    }
+
+    await socket.close.event
+    client.socket.readyState.should.equal(CLOSED)
+  })
+
+  it('Kicks massive messages', async () => {
+    const client = await server.next
+
+    try {
+      for await (const state of client.stateChange)
+        if (state == State.CONNECTED) {
+          await socket.open.event
+          socket.send(new ArrayBuffer(1000))
+        }
+      throw 'should cancel early'
+    } catch (err) {
+      err.should.be.instanceof(Error)
+      err.message.should.match(/attempted to send 1000 bytes/)
     }
 
     await socket.close.event

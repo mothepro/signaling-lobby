@@ -11,6 +11,7 @@ describe('Lobby', () => {
 
   beforeEach(async () => server = await createSignalingLobby({
     maxConnections: 10,
+    maxSize: 2 ** 10,
     maxLength: 100,
     idleTimeout: 1000,
     syncTimeout: 100,

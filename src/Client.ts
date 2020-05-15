@@ -57,27 +57,36 @@ export default class {
 
   /** Activated when the client talks to the server. */
   private readonly incoming: SafeEmitter<WebSocket.Data> = new SafeEmitter(data => {
-    logger(Level.TRANSFER, this.id, '>', data)
-    try {
-      switch (this.state) {
-        case State.CONNECTED:
-          this.intro.activate(getIntro(data))
-          break
+    let size = 0
+    if (typeof data == 'string' || Array.isArray(data))
+      size = data.length
+    if (Buffer.isBuffer(data) || data instanceof ArrayBuffer)
+      size = data.byteLength
 
-        case State.IN_LOBBY:
-          this.proposal.activate(getProposal(data))
-          break
+    if (0 < size && size < this.maxPacketSize)
+      try {
+        logger(Level.TRANSFER, this.id, '>', data)
+        switch (this.state) {
+          case State.CONNECTED:
+            this.intro.activate(getIntro(data))
+            break
 
-        case State.SYNCING:
-          this.message.activate(getSyncBuffer(data))
-          break
+          case State.IN_LOBBY:
+            this.proposal.activate(getProposal(data))
+            break
 
-        default:
-          throw Error(`${this.id} in state ${this.state} sent unexpected data ${data}`)
+          case State.SYNCING:
+            this.message.activate(getSyncBuffer(data))
+            break
+
+          default:
+            throw Error(`${this.id} in state ${this.state} sent unexpected data ${data}`)
+        }
+      } catch (err) {
+        this.stateChange.deactivate(err)
       }
-    } catch (err) {
-      this.stateChange.deactivate(err)
-    }
+    else
+      this.stateChange.deactivate(Error(`${this.id} attempted to send ${size} bytes, expected between 1 & ${this.maxPacketSize} bytes`))
   })
 
   readonly send = async (message: ArrayBuffer | SharedArrayBuffer) =>
@@ -89,6 +98,7 @@ export default class {
     /** An ID that is unique to this client. */
     readonly id: number,
     readonly socket: WebSocket,
+    private readonly maxPacketSize: number,
     private readonly maxNameLength: number,
     /** ms to wait before to kill this client if they are not grouped. */
     private readonly idleTimeout: number,

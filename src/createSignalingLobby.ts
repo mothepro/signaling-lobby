@@ -1,5 +1,5 @@
 import * as WebSocket from 'ws'
-import { SafeSingleEmitter, Emitter, Listener } from 'fancy-emitter'
+import { SingleEmitter, Emitter, Listener } from 'fancy-emitter'
 import Client, { State } from './Client'
 import addToLobby from './Lobby'
 import openId from '../util/openId'
@@ -33,11 +33,11 @@ export default async function (
   httpServer = createServer(),
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
-): Promise<Listener<Client>> {
+) {
   let totalConnections = 0
 
   /** Activated when server is ready to receive connections. */
-  const ready = new SafeSingleEmitter,
+  const ready = new SingleEmitter<Listener<Client>>(),
 
     /** Activated when a socket successfully connectes to the server. */
     connection = new Emitter<Client>(async client => {
@@ -54,7 +54,8 @@ export default async function (
   httpServer.once('close', connection.cancel)
   httpServer.once('close', socketServer.close)
   httpServer.once('error', connection.deactivate)
-  httpServer.once('listening', ready.activate)
+  httpServer.once('error', ready.deactivate)
+  httpServer.once('listening', () => ready.activate(connection))
   httpServer.on('upgrade', (request, socket, head) => {
     if (maxConnections && totalConnections >= maxConnections) {
       logErr('This server is already at its max connections', maxConnections)
@@ -63,8 +64,6 @@ export default async function (
       socketServer.handleUpgrade(request, socket, head, webSocket => connection.activate(
         new Client(availableId.next().value, webSocket as WebSocket, maxSize, maxLength, idleTimeout, syncTimeout)))
   })
-
   httpServer.listen(port, hostname, backlog)
-  await ready.event
-  return connection
+  return ready.event
 }

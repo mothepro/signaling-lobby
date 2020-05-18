@@ -1,4 +1,4 @@
-let globalLevel = Level.USEFUL
+let globalLevel = -1
 
 export const enum Level {
   USEFUL,
@@ -10,7 +10,9 @@ export const enum Level {
 export const setLevel = (level: Level) => globalLevel = level
 
 // @ts-ignore shhh... it's okay
-export const logErr = (...args: unknown[]) => console.error(...args) || true as const
+export const logErr = (...args: unknown[]) => globalLevel >= Level.USEFUL
+  && console.error(...args)
+  || true as const // Makes chaining easier...
 
 export default (level: Level, ...args: unknown[]) => globalLevel >= level
   && console.log(...args)

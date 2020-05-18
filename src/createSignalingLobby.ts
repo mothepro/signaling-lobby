@@ -55,9 +55,6 @@ export default async function (
   httpServer.once('close', socketServer.close)
   httpServer.once('error', connection.deactivate)
   httpServer.once('listening', ready.activate)
-  if (httpServer.listening)
-    ready.activate()
-
   httpServer.on('upgrade', (request, socket, head) => {
     if (maxConnections && totalConnections >= maxConnections) {
       logErr('This server is already at its max connections', maxConnections)

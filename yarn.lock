@@ -680,10 +680,10 @@ external-editor@^3.0.3:
     iconv-lite "^0.4.24"
     tmp "^0.0.33"
 
-fancy-emitter@^1.3.6:
-  version "1.3.6"
-  resolved "https://registry.yarnpkg.com/fancy-emitter/-/fancy-emitter-1.3.6.tgz#16ed9e7cf3c4b07ca2f6cd0f5a561261eaa7ffef"
-  integrity sha512-yBu+dDTsPCZzRpFUxARtivgbt1Knjcy/LxVnKylXsWhdNDLuxdZzgP7Y5tRf6qUsDf3zE9FiDIxzZeuiq2kX4Q==
+fancy-emitter@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/fancy-emitter/-/fancy-emitter-1.4.0.tgz#9f6a4d396c3686581e1c424e1259ed6dcd6064c9"
+  integrity sha512-VnwsrPZgU0FwhKGEW1eJFUJMsH0Nq19FraDeXrSUn5yOlgrW7mSxGUTBhRbctcbfanYlpL57SQs5+sR+Azeubw==
 
 figures@^1.7.0:
   version "1.7.0"

@@ -1,4 +1,4 @@
-import { Listener } from 'fancy-emitter'
+import { Listener, filter } from 'fancy-emitter'
 import { OPEN, CLOSED } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
 import createSignalingLobby from '../src/createSignalingLobby'
@@ -69,11 +69,11 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      for await (const state of client.stateChange)
-        if (state == State.CONNECTED) {
-          await socket.open.event
-          socket.sendIntro(123, '\n\t \r\u200b')
-        }
+      await filter(client.stateChange, State.CONNECTED)
+      await socket.open.event
+      socket.sendIntro(123, '\n\t \r\u200b')
+
+      await client.stateChange.next
       throw 'should cancel early'
     } catch (err) {
       err.should.be.instanceof(TypeError)
@@ -88,11 +88,11 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      for await (const state of client.stateChange)
-        if (state == State.CONNECTED) {
-          await socket.open.event
-          socket.send(new Uint8Array([0, 1]).buffer)
-        }
+      await filter(client.stateChange, State.CONNECTED)
+      await socket.open.event
+      socket.send(new Uint8Array([0, 1]).buffer)
+
+      await client.stateChange.next
       throw 'should cancel early'
     } catch (err) {
       err.should.be.instanceof(TypeError)
@@ -107,11 +107,11 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      for await (const state of client.stateChange)
-        if (state == State.CONNECTED) {
-          await socket.open.event
-          socket.send(new ArrayBuffer(0))
-        }
+      await filter(client.stateChange, State.CONNECTED)
+      await socket.open.event
+      socket.send(new ArrayBuffer(0))
+
+      await client.stateChange.next
       throw 'should cancel early'
     } catch (err) {
       err.should.be.instanceof(Error)
@@ -126,11 +126,11 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      for await (const state of client.stateChange)
-        if (state == State.CONNECTED) {
-          await socket.open.event
-          socket.send(new ArrayBuffer(1000))
-        }
+      await filter(client.stateChange, State.CONNECTED)
+      await socket.open.event
+      socket.send(new ArrayBuffer(1000))
+
+      await client.stateChange.next
       throw 'should cancel early'
     } catch (err) {
       err.should.be.instanceof(Error)

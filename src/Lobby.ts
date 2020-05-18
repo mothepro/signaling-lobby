@@ -1,3 +1,4 @@
+import { filter } from 'fancy-emitter'
 import Client, { State } from './Client'
 import logger, { Level } from '../util/logger'
 import Group from './Group'
@@ -50,11 +51,8 @@ export default async function (lobbyId: LobbyID, client: Client) {
   })
 
   // Remove dead or syncing clients
-  try {
-    for await (const state of client.stateChange)
-      if (state == State.SYNCING)
-        break
-  } catch { } // Handled in Client's constructor
+  await filter(client.stateChange, State.SYNCING)
+    .catch(() => { }) // Handled in Client's constructor
 
   members.delete(client)
 

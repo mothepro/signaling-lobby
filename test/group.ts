@@ -43,7 +43,7 @@ describe('Groups', () => {
 
     mySocket.exit()
 
-    await myClient.stateChange.on(() => { }) // listener finished
+    for await (const _ of myClient.stateChange);
     const { approval, ids } = await otherSocket.groupChange.next
 
     myClient.stateChange.isAlive.should.be.false()

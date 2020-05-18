@@ -38,7 +38,7 @@ export default class Group {
   /** Code to be sent to the clients when group is done. */
   private readonly code = Math.trunc(Math.random() * Max.INT)
 
-  readonly ready = new SingleEmitter(
+  private readonly ready = new SingleEmitter(
     () => logger(Level.INFO, ...this.clients.keys(), 'have finalized a group'),
     () => [...this.clients].map(([, { stateChange }]) => stateChange.activate(State.SYNCING)),
     () => [...this.clients].map(([id, { send }]) =>

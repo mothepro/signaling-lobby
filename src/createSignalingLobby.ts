@@ -18,13 +18,16 @@ const availableId = openId(Max.SHORT)
  */
 // TODO add DoS prevention use
 export default async function (
-  { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout }:
+  { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout, port, hostname, backlog }:
     {
       maxConnections: number
       maxSize: number
       maxLength: number
       idleTimeout: number
       syncTimeout: number
+      port?: number
+      hostname?: string
+      backlog?: number
     },
   /** The underlying HTTP(S) connection server. */
   httpServer = createServer(),
@@ -64,6 +67,7 @@ export default async function (
         new Client(availableId.next().value, webSocket as WebSocket, maxSize, maxLength, idleTimeout, syncTimeout)))
   })
 
+  httpServer.listen(port, hostname, backlog)
   await ready.event
   return connection
 }

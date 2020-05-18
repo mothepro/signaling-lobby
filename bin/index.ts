@@ -11,7 +11,7 @@ const readFileAsync = promisify(readFile)
 setLevel(verbose)
 
 ;(async function () { // no top level await :(
-  
+
 try {
   const server = key && cert
     ? createServer({
@@ -19,7 +19,7 @@ try {
       cert: await readFileAsync(cert, { encoding: 'utf-8' }),
     })
     : createUnsecureServer(),
-    connection = await createSignalingLobby({ maxConnections, maxSize, maxLength, idleTimeout, syncTimeout }, server.listen(port, hostname))
+    connection = await createSignalingLobby({ maxConnections, maxSize, maxLength, idleTimeout, syncTimeout, port, hostname }, server)
 
   logger(Level.USEFUL, 'Signaling server initiated', server.address())
 
@@ -31,5 +31,5 @@ try {
 } finally {
   logger(Level.USEFUL, 'Shutting down the signaling server')
 }
-  
+
 }())

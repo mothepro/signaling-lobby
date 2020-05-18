@@ -15,7 +15,7 @@ describe('Groups', () => {
     maxLength: 100,
     idleTimeout: 1000,
     syncTimeout: 100,
-  }, http = createServer().listen()))
+  }, http = createServer()))
 
   afterEach(() => http.close())
 

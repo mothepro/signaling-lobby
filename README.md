@@ -22,9 +22,11 @@ Flag | Alias | Type | Default | Description
 
 ## EC2
 
+Create a hosted zone to point to EC2 server **public** IP.
+
 First, to support a secure server, create a key & cert pair with `letsencrypt`
 
-Install with the following commandds
+Install with the following commands
 
 ```shell
 sudo yum-config-manager --enable rhui-REGION-rhel-server-extras rhui-REGION-rhel-server-optional
@@ -35,7 +37,7 @@ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noa
 
 Make a security group that makes the `port` to use available.
 
-Finally, Run the server and set the `hostname` (`-h`) to the external IP.
+Finally, Run the server and set the `hostname` (`-h`) to the **private** IP.
 
 ```shell
 npx @mothepro/signaling-lobby -vvvvv \

@@ -15,7 +15,7 @@ describe('Lobby', () => {
     maxLength: 100,
     idleTimeout: 1000,
     syncTimeout: 100,
-  }, http = createServer()))
+  }, http = createServer().listen()))
 
   it('Client can connect to lobby', async () => {
     // Zero width chars are removed from the names

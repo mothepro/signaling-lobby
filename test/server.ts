@@ -18,7 +18,7 @@ describe('Server', () => {
       maxLength: 100,
       idleTimeout: 500,
       syncTimeout: 100,
-    }, http = createServer())
+    }, http = createServer().listen())
     socket = new BrowserSocket(http)
   })
 

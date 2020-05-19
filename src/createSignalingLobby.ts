@@ -5,7 +5,7 @@ import addClientToLobby from './addClientToLobby'
 import openId from '../util/openId'
 import { logErr } from '../util/logger'
 import { Max } from '../util/constants'
-import { createServer } from 'http'
+import { createServer, Server } from 'http'
 
 /** Create available IDs for the clients */
 const availableId = openId(Max.SHORT)
@@ -18,19 +18,16 @@ const availableId = openId(Max.SHORT)
  */
 // TODO add DoS prevention use
 export default async function (
-  { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout, port, hostname, backlog }:
+  { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout }:
     {
       maxConnections: number
       maxSize: number
       maxLength: number
       idleTimeout: number
       syncTimeout: number
-      port?: number
-      hostname?: string
-      backlog?: number
     },
   /** The underlying HTTP(S) connection server. */
-  httpServer = createServer(),
+  httpServer: Server,
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
 ) {
@@ -63,6 +60,9 @@ export default async function (
       socketServer.handleUpgrade(request, socket, head, webSocket => connection.activate(
         new Client(availableId.next().value, webSocket as WebSocket, maxSize, maxLength, idleTimeout, syncTimeout)))
   })
-  httpServer.listen(port, hostname, backlog)
+
+  if (httpServer.listening)
+    return connection
+  
   return ready.event
 }

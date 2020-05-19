@@ -19,7 +19,7 @@ try {
       cert: await readFileAsync(cert, { encoding: 'utf-8' }),
     })
     : createUnsecureServer(),
-    connection = await createSignalingLobby({ maxConnections, maxSize, maxLength, idleTimeout, syncTimeout, port, hostname }, server)
+    connection = await createSignalingLobby({ maxConnections, maxSize, maxLength, idleTimeout, syncTimeout }, server.listen(port, hostname))
 
   logger(Level.USEFUL, 'Signaling server initiated', server.address())
 

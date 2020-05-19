@@ -59,7 +59,7 @@ describe('Server', () => {
   it('Kicks Idlers', async () => {
     await socket.open.event
 
-    await milliseconds(500 + 15) // some delta to allow server to close.
+    await milliseconds(500 + 50) // some delta to allow server to close.
 
     socket.close.triggered.should.be.true()
     socket.readyState.should.eql(CLOSED)

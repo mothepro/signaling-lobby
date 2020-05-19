@@ -1,4 +1,4 @@
-import { Listener, filter } from 'fancy-emitter'
+import { Listener, filterValue } from 'fancy-emitter'
 import { OPEN, CLOSED } from 'ws'
 import BrowserSocket from './util/BrowserSocket'
 import createSignalingLobby from '../src/createSignalingLobby'
@@ -69,7 +69,7 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      await filter(client.stateChange, State.CONNECTED)
+      await filterValue(client.stateChange, State.CONNECTED)
       await socket.open.event
       socket.sendIntro(123, '\n\t \r\u200b')
 
@@ -88,7 +88,7 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      await filter(client.stateChange, State.CONNECTED)
+      await filterValue(client.stateChange, State.CONNECTED)
       await socket.open.event
       socket.send(new Uint8Array([0, 1]).buffer)
 
@@ -107,7 +107,7 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      await filter(client.stateChange, State.CONNECTED)
+      await filterValue(client.stateChange, State.CONNECTED)
       await socket.open.event
       socket.send(new ArrayBuffer(0))
 
@@ -126,7 +126,7 @@ describe('Server', () => {
     const client = await server.next
 
     try {
-      await filter(client.stateChange, State.CONNECTED)
+      await filterValue(client.stateChange, State.CONNECTED)
       await socket.open.event
       socket.send(new ArrayBuffer(1000))
 

@@ -3,7 +3,7 @@ import { Listener } from 'fancy-emitter'
 import { CLOSED } from 'ws'
 import { createServer, Server } from 'http'
 import createSignalingLobby from '../src/createSignalingLobby'
-import Client, { State } from '../src/Client'
+import Client from '../src/Client'
 import joinLobby, { nextLobby } from './util/joinLobby'
 
 describe('Groups', () => {

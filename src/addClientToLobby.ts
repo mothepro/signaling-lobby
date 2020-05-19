@@ -1,4 +1,4 @@
-import { filter } from 'fancy-emitter'
+import { filterValue } from 'fancy-emitter'
 import Client, { State } from './Client'
 import logger, { Level } from '../util/logger'
 import Group from './Group'
@@ -51,7 +51,7 @@ export default async function (lobbyId: LobbyID, client: Client) {
   })
 
   // Remove dead or syncing clients
-  await filter(client.stateChange, State.SYNCING)
+  await filterValue(client.stateChange, State.SYNCING)
     .catch(() => { }) // Handled in Client's constructor
 
   members.delete(client)

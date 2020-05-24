@@ -136,5 +136,6 @@ export default class {
       logErr(this.id, err)
       this.socket.terminate()
     }
+    logger(Level.DEBUG, this.id, '> will no longer be updated')
   }
 }

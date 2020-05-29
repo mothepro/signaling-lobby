@@ -15,9 +15,11 @@ const zeroWidthCharCodes = new Set<number>()
   .add(27) // Escape
 
 /** Removes any bad characters from a user's string. */
-export default function (input: string) {
-  const ret = input.replace(new RegExp(`[${String.fromCharCode(...zeroWidthCharCodes)}]`, 'g'), '').trim()
-  if (ret)
-    return ret
-  throw TypeError('Expected to sanitize a string')
+export default function (input: unknown, maxLen?: number): string {
+  if (typeof input == 'string')
+    return input
+      .replace(new RegExp(`[${String.fromCharCode(...zeroWidthCharCodes)}]`, 'g'), '')
+      .trim()
+      .substr(0, maxLen)
+  return ''
 }

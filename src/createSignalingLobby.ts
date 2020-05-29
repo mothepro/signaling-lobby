@@ -1,12 +1,14 @@
-import * as WebSocket from 'ws'
 import { Server, IncomingMessage } from 'http'
 import { Socket } from 'net'
+import { parse } from 'url'
+import * as WebSocket from 'ws'
 import { SingleEmitter, Emitter, Listener, filterValue } from 'fancy-emitter'
 import Client, { State } from './Client'
 import addClientToLobby from './addClientToLobby'
 import openId from '../util/openId'
 import { logErr } from '../util/logger'
 import { Max } from '../util/constants'
+import stringSantizer from '../util/stringSantizer'
 
 /** Create available IDs for the clients */
 const availableId = openId(Max.SHORT)
@@ -44,7 +46,7 @@ export default async function (
       totalConnections++
       try {
         // Prepares a lobby of a specific ID and adds client to it
-        await filterValue(client.stateChange, State.IN_LOBBY)
+        await filterValue(client.stateChange, State.CONNECTED)
         await addClientToLobby(client.lobby!, client)
       } catch { } // Handled in Client's constructor 
       totalConnections--
@@ -67,13 +69,36 @@ export default async function (
       socket.destroy()
       return
     }
-     
+
+    const { query: { lobby, name } } = parse(request.url!, true),
+      realLobby = parseInt(lobby as string, 32),
+      realName = stringSantizer(name, maxLength)
+
+    if (!lobby || Number.isNaN(realLobby)) {
+      logErr('A valid lobby (base32) must be given on initialization', lobby)
+      socket.destroy()
+      return
+    }
+
+    if (!realName) {
+      logErr('A valid name must be given on initialization', name)
+      socket.destroy()
+      return
+    }
+
     socketServer.handleUpgrade(request, socket, head, webSocket => connection.activate(
-      new Client(availableId.next().value, webSocket as WebSocket, maxSize, maxLength, idleTimeout, syncTimeout)))
+      new Client(
+        availableId.next().value,
+        realName,
+        realLobby,
+        webSocket as WebSocket,
+        maxSize,
+        idleTimeout,
+        syncTimeout)))
   })
 
   if (httpServer.listening)
     return connection
-  
+
   return ready.event
 }

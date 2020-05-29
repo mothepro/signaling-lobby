@@ -1,4 +1,4 @@
-import { Listener } from 'fancy-emitter'
+import { Listener, filterValue } from 'fancy-emitter'
 import { Name } from '../../src/messages'
 import Client, { State } from '../../src/Client'
 import BrowserSocket from './BrowserSocket'
@@ -17,22 +17,14 @@ export const nextLobby = () => lobbyId++
  *  This is because the `Client` is just the next connection to the server.
  */
 export default async function (http: Server, server: Listener<Client>, name: Name, lobby = nextLobby()) {
-  const socket = new BrowserSocket(http),
+  const socket = new BrowserSocket(http, lobby, name),
     client = await server.next
 
-  for await (const state of client.stateChange)
-    switch (state) {
-      case State.CONNECTED:
-        await socket.open.event
-        socket.sendIntro(lobby, name)
-        break
+  // wait for readiness on client and server side
+  await Promise.all([
+    filterValue(client.stateChange, State.CONNECTED),
+    socket.open.event,
+  ])
 
-      case State.IN_LOBBY:
-        return [socket, client] as const
-
-      default:
-        throw Error('Client reached an unexpected state before reaching the lobby')
-    }
-
-  throw Error('The State emitter should not finish')
+  return [socket, client] as const
 }

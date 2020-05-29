@@ -8,23 +8,21 @@ import Client, { State } from '../src/Client'
 
 describe('Server', () => {
   let server: Listener<Client>,
-    socket: BrowserSocket,
     http: Server
 
-  beforeEach(async () => {
+  beforeEach(async () =>
     server = await createSignalingLobby({
       maxConnections: 5,
       maxSize: 100,
       maxLength: 100,
       idleTimeout: 500,
       syncTimeout: 100,
-    }, http = createServer().listen())
-    socket = new BrowserSocket(http)
-  })
+    }, http = createServer().listen()))
 
   afterEach(() => http.close())
 
   it('Clients can connect', async () => {
+    const socket = new BrowserSocket(http, 0, 'mo')
     // This happens after the server connection completes
     await socket.open.event
     socket.readyState.should.eql(OPEN)
@@ -33,18 +31,18 @@ describe('Server', () => {
 
   it('Respects max connections', async () => {
     const clients = [
-      socket,
-      new BrowserSocket(http),
-      new BrowserSocket(http),
-      new BrowserSocket(http),
-      new BrowserSocket(http),
+      new BrowserSocket(http, 0, 'mo'),
+      new BrowserSocket(http, 1, 'mo1'),
+      new BrowserSocket(http, 2, 'mo2'),
+      new BrowserSocket(http, 3, 'mo3'),
+      new BrowserSocket(http, 4, 'mo4'),
     ]
 
     // all clients must be connected
     await Promise.all(clients.map(client => client.open.event))
 
     // push the limit
-    const overflow = new BrowserSocket(http)
+    const overflow = new BrowserSocket(http, 5, 'mo5')
 
     // socket hang up thrown
     overflow.close.event.should.be.rejected()
@@ -57,6 +55,7 @@ describe('Server', () => {
   })
 
   it('Kicks Idlers', async () => {
+    const socket = new BrowserSocket(http, 0, 'mo')
     await socket.open.event
 
     await milliseconds(500 + 50) // some delta to allow server to close.
@@ -66,64 +65,32 @@ describe('Server', () => {
   })
 
   it('Kicks clients with invalid names', async () => {
-    const client = await server.next
+    const socket = new BrowserSocket(http, 0, '\n\t \r\u200b')
 
     try {
-      await filterValue(client.stateChange, State.CONNECTED)
-      await socket.open.event
-      socket.sendIntro(123, '\n\t \r\u200b')
-
-      await client.stateChange.next
-      throw 'should cancel early'
+      await socket.close.event
+      throw 'should have thrown already'
     } catch (err) {
-      err.should.be.instanceof(TypeError)
-      err.message.should.be.eql('Expected to sanitize a string')
+      err.should.be.instanceof(Error)
+      err.message.should.match(/socket hang up/)
     }
-
-    await socket.close.event
-    client.socket.readyState.should.equal(CLOSED)
-  })
-
-  it('Kicks non-intros', async () => {
-    const client = await server.next
-
-    try {
-      await filterValue(client.stateChange, State.CONNECTED)
-      await socket.open.event
-      socket.send(new Uint8Array([0, 1]).buffer)
-
-      await client.stateChange.next
-      throw 'should cancel early'
-    } catch (err) {
-      err.should.be.instanceof(TypeError)
-      err.message.should.startWith('Expected Introduction')
-    }
-
-    await socket.close.event
-    client.socket.readyState.should.equal(CLOSED)
   })
 
   it('Kicks empty messages', async () => {
-    const client = await server.next
+    const socket = new BrowserSocket(http, 0, '')
 
     try {
-      await filterValue(client.stateChange, State.CONNECTED)
-      await socket.open.event
-      socket.send(new ArrayBuffer(0))
-
-      await client.stateChange.next
-      throw 'should cancel early'
+      await socket.close.event
+      throw 'should have thrown already'
     } catch (err) {
       err.should.be.instanceof(Error)
-      err.message.should.match(/attempted to send 0 bytes/)
+      err.message.should.match(/socket hang up/)
     }
-
-    await socket.close.event
-    client.socket.readyState.should.equal(CLOSED)
   })
 
   it('Kicks massive messages', async () => {
-    const client = await server.next
+    const socket = new BrowserSocket(http, 0, 'mo'),
+      client = await server.next
 
     try {
       await filterValue(client.stateChange, State.CONNECTED)

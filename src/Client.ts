@@ -1,6 +1,6 @@
 import * as WebSocket from 'ws'
-import { SafeEmitter, Emitter, SafeSingleEmitter } from 'fancy-emitter'
-import { Name, LobbyID, getIntro, Intro, Proposal, getProposal, SyncBuffer, getSyncBuffer } from './messages'
+import { SafeEmitter, Emitter } from 'fancy-emitter'
+import { Name, LobbyID, Proposal, getProposal, SyncBuffer, getSyncBuffer } from './messages'
 import logger, { Level, logErr } from '../util/logger'
 
 export const enum State {
@@ -8,16 +8,10 @@ export const enum State {
   ONLINE,
 
   /**
-   * Client that has just connected and we can communicate with them.
-   * Should only send an `Intro`.
-   */
-  CONNECTED,
-
-  /**
    * Client is in the lobby with a name assigned.
    * Should only send a `Proposal` as start group / confirmation or a `Reject`.
    */
-  IN_LOBBY,
+  CONNECTED,
 
   /**
    * Group established.
@@ -30,24 +24,11 @@ export default class {
   /** Current state of connection. */
   state = State.ONLINE
 
-  /** Name given by the client. */
-  name?: Name
-
-  /** Lobby the client is a part of. */
-  lobby?: LobbyID
-
   /** Activated when changing state. */
   readonly stateChange: Emitter<State> = new Emitter
 
   /** Handle to kill this client after timeout. */
   private timeout = setTimeout(this.stateChange.cancel, this.idleTimeout)
-
-  /** Activated when the client sends an intro to the server. */
-  readonly intro = new SafeSingleEmitter<Intro>(({ name, lobby }) => {
-    this.name = name.substr(0, this.maxNameLength)
-    this.lobby = lobby
-    this.stateChange.activate(State.IN_LOBBY)
-  })
 
   /** Activated when the client sends a group proposal to the server. */
   readonly proposal = new SafeEmitter<Proposal>()
@@ -68,10 +49,6 @@ export default class {
         logger(Level.TRANSFER, this.id, '>', data)
         switch (this.state) {
           case State.CONNECTED:
-            this.intro.activate(getIntro(data))
-            break
-
-          case State.IN_LOBBY:
             this.proposal.activate(getProposal(data))
             break
 
@@ -90,16 +67,19 @@ export default class {
   })
 
   readonly send = async (message: ArrayBuffer | SharedArrayBuffer) =>
-    (this.state == State.CONNECTED || this.state == State.IN_LOBBY || this.state == State.SYNCING)
+    (this.state == State.CONNECTED || this.state == State.SYNCING)
     && logger(Level.TRANSFER, this.id, '<', message)
     && new Promise(resolve => this.socket.send(message, {}, resolve))
 
   constructor(
     /** An ID that is unique to this client. */
     readonly id: number,
+    /** Name given by the client. */
+    readonly name: Name,
+    /** Lobby the client is a part of. */
+    readonly lobby: LobbyID,
     readonly socket: WebSocket,
     private readonly maxPacketSize: number,
-    private readonly maxNameLength: number,
     /** ms to wait before to kill this client if they are not grouped. */
     private readonly idleTimeout: number,
     private readonly syncTimeout: number,

@@ -32,8 +32,10 @@ describe('Lobby', () => {
     const lobby = nextLobby(),
       [mySocket, myClient] = await joinLobby(http, server, 'mo', lobby),
       [otherSocket, otherClient] = await joinLobby(http, server, 'momo', lobby),
-      msg1 = await mySocket.clientPresence.next,
-      msg2 = await otherSocket.clientPresence.next
+      [msg1, msg2] = await Promise.all([
+        mySocket.clientPresence.next,
+        otherSocket.clientPresence.next,
+      ])
 
     msg1.join.should.be.true()
     msg2.join.should.be.true()

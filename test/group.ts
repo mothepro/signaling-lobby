@@ -156,7 +156,7 @@ describe('Groups', () => {
     // Makes sure that each only sends to offer to one that is waiting for offer
     // hardcoded since IDs are always ascending atm...
     me.should.eql([true, true])
-    other.should.eql([true, false])
+    other.should.eql([false, true])
     guest.should.eql([false, false])
   })
 

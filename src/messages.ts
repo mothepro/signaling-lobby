@@ -25,23 +25,6 @@ function dataToView(input: Data, type: string, assert: (view: DataView) => boole
   throw TypeError(`Expected ${type} but got '${input}'`)
 }
 
-/** Tell the server to add me to lobby with other potential clients. */
-export interface Intro {
-  /** Name to use as client. */
-  name: Name
-
-  /** ID of lobby to join */
-  lobby: LobbyID
-}
-
-export function getIntro(input: Data): Intro {
-  const data = dataToView(input, 'Introduction', view => view.byteLength > Size.INT)
-  return {
-    lobby: data.getInt32(0, true),
-    name: stringSantizer(decoder.decode(data.buffer.slice(Size.INT))),
-  }
-}
-
 /** Update a group proposal. */
 export interface Proposal {
   /** True to accept or create, False to reject. */

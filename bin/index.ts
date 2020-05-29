@@ -10,19 +10,24 @@ import createSignalingLobby from '../src/createSignalingLobby'
 const readFileAsync = promisify(readFile)
 
 setLevel(verbose)
+logger(Level.USEFUL, 'Using version', version)
 
 ;(async function () { // no top level await :(
 
 try {
   const server = key && cert
-    ? createServer({
-      key: await readFileAsync(key, { encoding: 'utf-8' }),
-      cert: await readFileAsync(cert, { encoding: 'utf-8' }),
-    })
-    : createUnsecureServer(),
-    connection = await createSignalingLobby({ maxConnections, maxSize, maxLength, idleTimeout, syncTimeout }, server.listen(port, hostname))
+      ? createServer({
+        key: await readFileAsync(key, { encoding: 'utf-8' }),
+        cert: await readFileAsync(cert, { encoding: 'utf-8' }),
+      })
+      : createUnsecureServer(),
+    connection = await createSignalingLobby(
+      { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout },
+      server.listen(port, hostname),
+      version)
 
-  logger(Level.USEFUL, version, 'Signaling Server listening', server.address())
+  logger(Level.USEFUL, 'Signaling Server listening', server.address())
+  logger(Level.INFO, 'Clients must connect with protocol', version)
 
   // Just wait through all connections
   for await (const _ of connection)

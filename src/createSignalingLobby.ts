@@ -1,11 +1,12 @@
 import * as WebSocket from 'ws'
+import { Server, IncomingMessage } from 'http'
+import { Socket } from 'net'
 import { SingleEmitter, Emitter, Listener, filterValue } from 'fancy-emitter'
 import Client, { State } from './Client'
 import addClientToLobby from './addClientToLobby'
 import openId from '../util/openId'
 import { logErr } from '../util/logger'
 import { Max } from '../util/constants'
-import { createServer, Server } from 'http'
 
 /** Create available IDs for the clients */
 const availableId = openId(Max.SHORT)
@@ -28,6 +29,8 @@ export default async function (
     },
   /** The underlying HTTP(S) connection server. */
   httpServer: Server,
+  /** The optional protocol that the client must specify to be accepted. */
+  protocol?: string,
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
 ) {
@@ -52,13 +55,21 @@ export default async function (
   httpServer.once('error', connection.deactivate)
   httpServer.once('error', ready.deactivate)
   httpServer.once('listening', () => ready.activate(connection))
-  httpServer.on('upgrade', (request, socket, head) => {
+  httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
+    if (protocol && request.headers['sec-websocket-protocol'] != protocol) {
+      logErr('Server requires the protocol', protocol, 'but client attempted to conntect with', request.headers['sec-websocket-protocol'])
+      socket.destroy()
+      return
+    }
+
     if (maxConnections && totalConnections >= maxConnections) {
       logErr('This server is already at its max connections', maxConnections)
       socket.destroy()
-    } else
-      socketServer.handleUpgrade(request, socket, head, webSocket => connection.activate(
-        new Client(availableId.next().value, webSocket as WebSocket, maxSize, maxLength, idleTimeout, syncTimeout)))
+      return
+    }
+     
+    socketServer.handleUpgrade(request, socket, head, webSocket => connection.activate(
+      new Client(availableId.next().value, webSocket as WebSocket, maxSize, maxLength, idleTimeout, syncTimeout)))
   })
 
   if (httpServer.listening)

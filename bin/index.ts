@@ -10,7 +10,6 @@ import createSignalingLobby from '../src/createSignalingLobby'
 const readFileAsync = promisify(readFile)
 
 setLevel(verbose)
-logger(Level.USEFUL, 'Using version', version)
 
 ;(async function () { // no top level await :(
 
@@ -27,7 +26,7 @@ try {
       version)
 
   logger(Level.USEFUL, 'Signaling Server listening', server.address())
-  logger(Level.INFO, 'Clients must connect with protocol', version)
+  logger(Level.USEFUL, 'Clients must connect with protocol', version)
 
   // Just wait through all connections
   for await (const _ of connection)

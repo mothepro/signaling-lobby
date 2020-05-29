@@ -42,10 +42,10 @@ describe('Server', () => {
     await Promise.all(clients.map(client => client.open.event))
 
     // push the limit
-    const overflow = new BrowserSocket(http, 5, 'mo5')
+    const overflow = new BrowserSocket(http, 5, 'overflow')
 
     // socket hang up thrown
-    overflow.close.event.should.be.rejected()
+    overflow.close.event.should.be.rejectedWith(/socket hang up/)
     overflow.open.triggered.should.be.false()
     server.count.should.eql(5)
 

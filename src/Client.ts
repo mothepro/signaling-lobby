@@ -1,7 +1,8 @@
 import * as WebSocket from 'ws'
 import { SafeEmitter, Emitter } from 'fancy-emitter'
-import { Name, LobbyID, Proposal, getProposal, SyncBuffer, getSyncBuffer } from './messages'
+import { Name, LobbyID, Proposal, getProposal, SyncBuffer, getSyncBuffer, ClientID, clientJoin, clientLeave } from './messages'
 import logger, { Level, logErr } from '../util/logger'
+import Group from './Group'
 
 export const enum State {
   /** Client that has just successfully initiated a connection. */
@@ -20,7 +21,11 @@ export const enum State {
   SYNCING,
 }
 
-export default class {
+export default class Client {
+
+  /** Map that points to all the Client.lobbies with clients still in it. */
+  private static readonly lobbies: Map<LobbyID, Set<Client>> = new Map
+
   /** Current state of connection. */
   state = State.ONLINE
 
@@ -83,6 +88,8 @@ export default class {
     /** ms to wait before to kill this client if they are not grouped. */
     private readonly idleTimeout: number,
     private readonly syncTimeout: number,
+    /** Conver an ID to Client (Used with incoming proposals) */
+    private readonly getClientWithId: (id: ClientID) => Client | void,
   ) {
     socket.binaryType = 'arraybuffer'
     socket.on('open', () => this.stateChange.activate(State.CONNECTED))
@@ -94,18 +101,38 @@ export default class {
     if (socket.readyState == socket.OPEN)
       setImmediate(() => this.stateChange.activate(State.CONNECTED))
 
+    // Add new client to lobby, make if doesn't exist
+    if (!Client.lobbies.has(this.lobby)) {
+      logger(Level.INFO, 'Creating lobby', this.lobby)
+      Client.lobbies.set(this.lobby, new Set)
+    }
+    logger(Level.INFO, this.id, '> joined lobby', this.lobby, 'as', this.name)
+    Client.lobbies.get(this.lobby)!.add(this)
+
     // Async not allowed in constructor
     this.bindState()
+    this.bindProposals()
   }
 
   private async bindState() {
     try {
       for await (const state of this.stateChange) {
         logger(Level.DEBUG, this.id, '> changed state', this.state, '->', state)
-        this.state = state
-        if (state == State.SYNCING) {
-          clearTimeout(this.timeout)
-          this.timeout = setTimeout(this.stateChange.cancel, this.syncTimeout)
+        switch (this.state = state) {
+          case State.CONNECTED:
+            // Tell everyone else about me & tell me about everyone else
+            for (const other of Client.lobbies.get(this.lobby)!)
+              if (this != other) {
+                other.send(clientJoin(this))
+                this.send(clientJoin(other))
+              }
+            break
+
+          case State.SYNCING:
+            clearTimeout(this.timeout)
+            this.timeout = setTimeout(this.stateChange.cancel, this.syncTimeout)
+            this.removeSelfFromLobby()
+            break
         }
       }
 
@@ -117,5 +144,46 @@ export default class {
       this.socket.terminate()
     }
     logger(Level.DEBUG, this.id, '> will no longer be updated')
+    this.removeSelfFromLobby()
+  }
+
+  private async bindProposals() {
+    for await (const { approve, ids } of this.proposal)
+      if (approve) {
+        const participants = []
+
+        // TODO, make this a one liner
+        for (const id of ids) {
+          const client = this.getClientWithId(id)
+          if (client && id != this.id)
+            participants.push(client)
+          else
+            // TODO decide if client should be kicked for this
+            logger(Level.DEBUG, this.id, '> tried to add some non-existent members to group', ids)
+        }
+
+        // TODO decide if client should be kicked for this
+        if (!participants.length)
+          logger(Level.DEBUG, this.id, '> Tried to make a group without members')
+
+        Group.make(this, ...participants)
+      }
+  }
+
+  private removeSelfFromLobby() {
+    const members = Client.lobbies.get(this.lobby)
+
+    if (members?.delete(this)) {
+      // Notify for client leaving on the next tick. Allows dead clients to be removed first
+      setImmediate(() => {
+        for (const { send } of members)
+          send(clientLeave(this))
+      })
+
+      if (!members.size) {
+        logger(Level.DEBUG, 'Removing empty lobby', this.lobby)
+        Client.lobbies.delete(this.lobby)
+      }
+    }
   }
 }

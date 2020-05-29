@@ -1,14 +1,14 @@
+import { SingleEmitter, Emitter, Listener } from 'fancy-emitter'
 import { Server, IncomingMessage } from 'http'
 import { Socket } from 'net'
 import { parse } from 'url'
 import * as WebSocket from 'ws'
-import { SingleEmitter, Emitter, Listener, filterValue } from 'fancy-emitter'
-import Client, { State } from './Client'
-import addClientToLobby from './addClientToLobby'
+import Client from './Client'
 import openId from '../util/openId'
 import { logErr } from '../util/logger'
 import { Max } from '../util/constants'
 import stringSantizer from '../util/stringSantizer'
+import { ClientID } from './messages'
 
 /** Create available IDs for the clients */
 const availableId = openId(Max.SHORT)
@@ -36,20 +36,21 @@ export default async function (
   /** The underlying WebSocket server. */
   socketServer = new WebSocket.Server({ noServer: true }),
 ) {
-  let totalConnections = 0
+  const allClients: Map<ClientID, Client> = new Map,
 
-  /** Activated when server is ready to receive connections. */
-  const ready = new SingleEmitter<Listener<Client>>(),
+    /** Activated when server is ready to receive connections. */
+    ready: SingleEmitter<Listener<Client>> = new SingleEmitter,
 
-    /** Activated when a socket successfully connectes to the server. */
+    /**
+     * Activated when a socket successfully connectes to the server.
+     * Save & remove client from list of all clients.
+     */
     connection = new Emitter<Client>(async client => {
-      totalConnections++
       try {
-        // Prepares a lobby of a specific ID and adds client to it
-        await filterValue(client.stateChange, State.CONNECTED)
-        await addClientToLobby(client.lobby!, client)
+        allClients.set(client.id, client)
+        for await (const _ of client.stateChange);
       } catch { } // Handled in Client's constructor 
-      totalConnections--
+      allClients.delete(client.id)
     })
 
   httpServer.once('close', connection.cancel)
@@ -59,12 +60,13 @@ export default async function (
   httpServer.once('listening', () => ready.activate(connection))
   httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
     if (protocol && request.headers['sec-websocket-protocol'] != protocol) {
-      logErr('Server requires the protocol', protocol, 'but client attempted to conntect with', request.headers['sec-websocket-protocol'])
+      logErr('Server requires the protocol', protocol,
+        'but client attempted to conntect with', request.headers['sec-websocket-protocol'])
       socket.destroy()
       return
     }
 
-    if (maxConnections && totalConnections >= maxConnections) {
+    if (maxConnections && allClients.size >= maxConnections) {
       logErr('This server is already at its max connections', maxConnections)
       socket.destroy()
       return
@@ -94,7 +96,8 @@ export default async function (
         webSocket as WebSocket,
         maxSize,
         idleTimeout,
-        syncTimeout)))
+        syncTimeout,
+        id => allClients.get(id))))
   })
 
   if (httpServer.listening)

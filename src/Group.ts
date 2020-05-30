@@ -1,5 +1,5 @@
 import { SingleEmitter } from 'fancy-emitter'
-import { ClientID, getProposal, groupJoin, groupLeave, groupFinal, getSyncBuffer } from './messages'
+import { ClientID, groupJoin, groupLeave, groupFinal } from './messages'
 import Client, { State } from './Client'
 import logger, { Level } from '../util/logger'
 import { Max } from '../util/constants'
@@ -55,7 +55,7 @@ export default class Group {
 
   private ack(ackerId: ClientID) {
     this.acks.add(ackerId)
-    logger(Level.INFO, ackerId, '> joining group of', ...this.clients.keys(), 'so far', this.acks, 'have agreed')
+    logger(Level.DEBUG, ackerId, '> joining group of', ...this.clients.keys(), 'so far', this.acks, 'have agreed')
 
     // Everyone is in!
     if (this.acks.size == this.clients.size)
@@ -80,7 +80,7 @@ export default class Group {
       this.bindMessage(client)
     }
 
-    logger(Level.INFO, initiator.id, '> proposed group to include', ...this.clients.keys())
+    logger(Level.DEBUG, initiator.id, '> proposed group to include', ...this.clients.keys())
     this.ack(initiator.id)
 
     // Notify all other clients when a group fails.

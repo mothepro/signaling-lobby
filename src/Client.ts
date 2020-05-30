@@ -103,10 +103,10 @@ export default class Client {
 
     // Add new client to lobby, make if doesn't exist
     if (!Client.lobbies.has(this.lobby)) {
-      logger(Level.INFO, 'Creating lobby', this.lobby)
+      logger(Level.DEBUG, 'Creating lobby', this.lobby)
       Client.lobbies.set(this.lobby, new Set)
     }
-    logger(Level.INFO, this.id, '> joined lobby', this.lobby, 'as', this.name)
+    logger(Level.DEBUG, this.id, '> joined lobby', this.lobby, 'as', this.name)
     Client.lobbies.get(this.lobby)!.add(this)
 
     // Async not allowed in constructor
@@ -159,12 +159,12 @@ export default class Client {
             participants.push(client)
           else
             // TODO decide if client should be kicked for this
-            logger(Level.DEBUG, this.id, '> tried to add some non-existent members to group', ids)
+            logger(Level.WARN, this.id, '> tried to add some non-existent members to group', ids)
         }
 
         // TODO decide if client should be kicked for this
         if (!participants.length)
-          logger(Level.DEBUG, this.id, '> Tried to make a group without members')
+          logger(Level.WARN, this.id, '> Tried to make a group without members')
 
         Group.make(this, ...participants)
       }

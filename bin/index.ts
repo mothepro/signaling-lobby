@@ -25,16 +25,16 @@ try {
       server.listen(port, hostname),
       version)
 
-  logger(Level.USEFUL, 'Signaling Server listening', server.address())
-  logger(Level.USEFUL, 'Clients must connect with protocol', version)
+  logger(Level.INFO, 'Signaling Server listening', server.address())
+  logger(Level.DEBUG, 'Clients must connect with protocol', version)
 
   // Just wait through all connections
   for await (const _ of connection)
-    logger(Level.TRANSFER, 'A new connection to the server has been made')
+    logger(Level.DEBUG, 'A new connection to the server has been made')
 } catch (err) {
   logErr('An error occurred with the signaling server', err)
 } finally {
-  logger(Level.USEFUL, 'Shutting down the signaling server', version)
+  logger(Level.INFO, 'Shutting down the signaling server', version)
 }
 
 }())

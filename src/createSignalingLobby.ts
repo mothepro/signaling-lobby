@@ -6,9 +6,8 @@ import * as WebSocket from 'ws'
 import Client from './Client'
 import openId from '../util/openId'
 import { logErr } from '../util/logger'
-import { Max } from '../util/constants'
+import { Max, ClientID } from '../util/constants'
 import stringSantizer from '../util/stringSantizer'
-import { ClientID } from './messages'
 
 /** Create available IDs for the clients */
 const availableId = openId(Max.SHORT)

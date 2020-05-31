@@ -2,8 +2,7 @@ import { Server } from 'http'
 import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
 import WebSocket, { Data, AddressInfo } from 'ws'
 import { TextEncoder } from 'util'
-import { Size } from '../../util/constants'
-import { ClientID, Name, Code, LobbyID } from '../../src/messages'
+import { Size, ClientID, Name, LobbyID, Code } from '../../util/constants'
 
 export const encoder = new TextEncoder
 

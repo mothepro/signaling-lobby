@@ -21,3 +21,21 @@ export const enum Max {
   INT = 2 ** SizeBits.INT - 1,
   BIG = 2 ** SizeBits.BIG - 1,
 }
+
+/** The name of the client, set by them. */
+export type Name = string
+
+/** Unique Key of the app that is utlizing the signaling lobby. */
+export type LobbyID = string
+
+/** Uint16 (2 bytes) to represent the ID of a client. */
+export type ClientID = number
+
+/** Prefix to buffer sent from server to the clients. */
+export const enum Code {
+  CLIENT_LEAVE,
+  CLIENT_JOIN,
+  GROUP_REQUEST,
+  GROUP_REJECT,
+  GROUP_FINAL,
+}

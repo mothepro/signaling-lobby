@@ -1,8 +1,8 @@
 import { Listener, filterValue } from 'fancy-emitter'
-import { Name } from '../../src/messages'
-import Client, { State } from '../../src/Client'
 import BrowserSocket from './BrowserSocket'
 import { Server } from 'http'
+import Client, { State } from '../../src/Client'
+import { Name } from '../../util/constants'
 
 let lobbyId = 0
 

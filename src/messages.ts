@@ -1,17 +1,9 @@
 import { Data } from 'ws'
-import { TextEncoder, TextDecoder } from 'util'
-import { Size } from '../util/constants'
+import { TextEncoder } from 'util'
+import { Size, ClientID, Code } from '../util/constants'
 import Client from './Client'
 
 const encoder = new TextEncoder
-
-export type Name = string
-
-/** Unique Key of the app that is utlizing the signaling lobby. */
-export type LobbyID = string
-
-/** Uint16 (2 bytes) to represent the ID of a client. */
-export type ClientID = number
 
 function dataToView(input: Data, type: string, assert: (view: DataView) => boolean) {
   if (input instanceof ArrayBuffer) {
@@ -63,14 +55,6 @@ export function getSyncBuffer(input: Data): SyncBuffer {
 }
 
 // Data sent to the browsers
-
-export const enum Code {
-  CLIENT_LEAVE,
-  CLIENT_JOIN,
-  GROUP_REQUEST,
-  GROUP_REJECT,
-  GROUP_FINAL,
-}
 
 export function clientJoin({ name, id }: Client) {
   const nameBuffer = encoder.encode(name!),

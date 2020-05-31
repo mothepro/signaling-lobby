@@ -1,8 +1,8 @@
 import { SingleEmitter } from 'fancy-emitter'
-import { ClientID, groupJoin, groupLeave, groupFinal } from './messages'
+import { groupJoin, groupLeave, groupFinal } from './messages'
 import Client, { State } from './Client'
 import logger, { Level } from '../util/logger'
-import { Max } from '../util/constants'
+import { Max, ClientID } from '../util/constants'
 
 class LeaveError extends Error {
   constructor(

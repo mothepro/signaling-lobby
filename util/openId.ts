@@ -1,4 +1,4 @@
-import { ClientID } from '../src/messages'
+import { ClientID } from './constants'
 
 /** Generates the next available ID. */
 // TODO specify freed up IDs

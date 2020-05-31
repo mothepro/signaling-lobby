@@ -1,5 +1,5 @@
 import { SingleEmitter } from 'fancy-emitter'
-import { groupJoin, groupLeave, groupFinal } from './messages'
+import { groupJoin, groupLeave, groupFinal } from './outgoing'
 import Client, { State } from './Client'
 import logger, { Level } from '../util/logger'
 import { Max, ClientID } from '../util/constants'

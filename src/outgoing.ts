@@ -1,60 +1,8 @@
-import { Data } from 'ws'
 import { TextEncoder } from 'util'
 import { Size, ClientID, Code } from '../util/constants'
 import Client from './Client'
 
 const encoder = new TextEncoder
-
-function dataToView(input: Data, type: string, assert: (view: DataView) => boolean) {
-  if (input instanceof ArrayBuffer) {
-    const data = new DataView(input)
-    if (assert(data))
-      return data
-  }
-
-  throw TypeError(`Expected ${type} but got '${input}'`)
-}
-
-/** Update a group proposal. */
-export interface Proposal {
-  /** True to accept or create, False to reject. */
-  approve: boolean
-
-  /** Other clients to include in group. */
-  ids: Set<ClientID>
-}
-
-export function getProposal(input: Data): Proposal {
-  const data = dataToView(input, 'Group Proposal',
-    // Leading true or false, followed by Shorts
-    view => view.byteLength >= Size.CHAR + Size.SHORT
-      && view.byteLength % Size.SHORT == Size.CHAR
-      && (view.getUint8(0) == +false || view.getUint8(0) == +true))
-
-  return {
-    ids: new Set(new Uint16Array(data.buffer.slice(Size.CHAR))),
-    approve: !!data.getUint8(0),
-  }
-}
-
-/** Data sent after a sync. */
-export interface SyncBuffer {
-  /** Who the data was directed to. */
-  to: ClientID
-
-  /** View of the buffer sent, including the `to`. */
-  content: DataView
-}
-
-export function getSyncBuffer(input: Data): SyncBuffer {
-  const content = dataToView(input, 'Sync Buffer', view => view.byteLength > Size.SHORT)
-  return {
-    to: content.getUint16(0, true),
-    content,
-  }
-}
-
-// Data sent to the browsers
 
 export function clientJoin({ name, id }: Client) {
   const nameBuffer = encoder.encode(name!),
@@ -82,7 +30,6 @@ function groupChange(approval: Code.GROUP_REJECT | Code.GROUP_REQUEST, ...ids: C
 
 export const groupJoin = (...ids: ClientID[]) => groupChange(Code.GROUP_REQUEST, ...ids)
 export const groupLeave = (...ids: ClientID[]) => groupChange(Code.GROUP_REJECT, ...ids)
-
 export function groupFinal(code: number, ...ids: ClientID[]) {
   const ret = new DataView(new ArrayBuffer(Size.CHAR + Size.INT + ids.length * Size.SHORT))
   ret.setUint8(0, Code.GROUP_FINAL)
@@ -91,4 +38,3 @@ export function groupFinal(code: number, ...ids: ClientID[]) {
     ret.setUint16(Size.CHAR + Size.INT + i * Size.SHORT, ids[i], true)
   return ret.buffer
 }
-

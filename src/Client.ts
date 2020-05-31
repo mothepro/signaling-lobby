@@ -1,6 +1,7 @@
 import * as WebSocket from 'ws'
 import { SafeEmitter, Emitter } from 'fancy-emitter'
-import { Proposal, getProposal, SyncBuffer, getSyncBuffer, clientJoin, clientLeave } from './messages'
+import { Proposal, getProposal, SyncBuffer, getSyncBuffer } from './incoming'
+import { clientJoin, clientLeave } from './outgoing'
 import { Name, LobbyID, ClientID } from '../util/constants'
 import logger, { Level, logErr } from '../util/logger'
 import Group from './Group'

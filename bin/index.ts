@@ -25,7 +25,7 @@ try {
       server.listen(port, hostname),
       version)
 
-  logger(Level.INFO, 'Signaling Server listening', server.address())
+  logger(Level.SEVERE, 'Signaling Server listening', server.address())
   logger(Level.DEBUG, 'Clients must connect with protocol', version)
 
   // Just wait through all connections

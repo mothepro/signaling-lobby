@@ -1,7 +1,8 @@
 let globalLevel = -1
 
 export const enum Level {
-  WARN,
+  SEVERE,
+  WARN = SEVERE,
   INFO,
   DEBUG,
   TRANSFER,
@@ -9,7 +10,7 @@ export const enum Level {
 
 export const setLevel = (level: Level) => globalLevel = level
 
-export const logErr = (...args: unknown[]) => globalLevel >= Level.WARN // hidden outside of binary
+export const logErr = (...args: unknown[]) => globalLevel >= Level.SEVERE // hidden outside of binary
   && console.error(...args)
   || true as const // Makes chaining easier...
 

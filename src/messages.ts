@@ -1,16 +1,14 @@
 import { Data } from 'ws'
 import { TextEncoder, TextDecoder } from 'util'
-import stringSantizer from '../util/stringSantizer'
 import { Size } from '../util/constants'
 import Client from './Client'
 
 const encoder = new TextEncoder
-const decoder = new TextDecoder
 
 export type Name = string
 
-/** Int32 (4 bytes) to represent the ID of a lobby. */
-export type LobbyID = number
+/** Unique Key of the app that is utlizing the signaling lobby. */
+export type LobbyID = string
 
 /** Uint16 (2 bytes) to represent the ID of a client. */
 export type ClientID = number

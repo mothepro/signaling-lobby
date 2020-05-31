@@ -73,17 +73,16 @@ export default async function (
     }
 
     const { query: { lobby, name } } = parse(request.url!, true),
-      realLobby = parseInt(lobby as string, 32),
-      realName = stringSantizer(name, maxLength)
+      realName = stringSantizer(name?.toString(), maxLength)
 
-    if (!lobby || Number.isNaN(realLobby)) {
-      logErr('A valid lobby (base32) must be given on initialization', lobby)
+    if (!lobby) {
+      logErr('Lobby must be specified to connect to the signaling server')
       socket.destroy()
       return
     }
 
     if (!realName) {
-      logErr('A valid name must be given on initialization', name)
+      logErr('Expected a valid name must be given on initialization, got', name)
       socket.destroy()
       return
     }
@@ -92,12 +91,12 @@ export default async function (
       new Client(
         availableId.next().value,
         realName,
-        realLobby,
+        lobby.toString(),
         webSocket as WebSocket,
         maxSize,
         idleTimeout,
         syncTimeout,
-        id => allClients.get(id))))
+        (id: ClientID) => allClients.get(id))))
   })
 
   if (httpServer.listening)

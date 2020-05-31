@@ -22,7 +22,7 @@ describe('Server', () => {
   afterEach(() => http.close())
 
   it('Clients can connect', async () => {
-    const socket = new BrowserSocket(http, 0, 'mo')
+    const socket = new BrowserSocket(http, '0', 'mo')
     // This happens after the server connection completes
     await socket.open.event
     socket.readyState.should.eql(OPEN)
@@ -31,18 +31,18 @@ describe('Server', () => {
 
   it('Respects max connections', async () => {
     const clients = [
-      new BrowserSocket(http, 0, 'mo'),
-      new BrowserSocket(http, 1, 'mo1'),
-      new BrowserSocket(http, 2, 'mo2'),
-      new BrowserSocket(http, 3, 'mo3'),
-      new BrowserSocket(http, 4, 'mo4'),
+      new BrowserSocket(http, '0', 'mo'),
+      new BrowserSocket(http, '1', 'mo1'),
+      new BrowserSocket(http, '2', 'mo2'),
+      new BrowserSocket(http, '3', 'mo3'),
+      new BrowserSocket(http, '4', 'mo4'),
     ]
 
     // all clients must be connected
     await Promise.all(clients.map(client => client.open.event))
 
     // push the limit
-    const overflow = new BrowserSocket(http, 5, 'overflow')
+    const overflow = new BrowserSocket(http, '5', 'overflow')
 
     // socket hang up thrown
     overflow.close.event.should.be.rejectedWith(/socket hang up/)
@@ -55,7 +55,7 @@ describe('Server', () => {
   })
 
   it('Kicks Idlers', async () => {
-    const socket = new BrowserSocket(http, 0, 'mo')
+    const socket = new BrowserSocket(http, '0', 'mo')
     await socket.open.event
 
     await milliseconds(500 + 50) // some delta to allow server to close.
@@ -65,7 +65,7 @@ describe('Server', () => {
   })
 
   it('Kicks clients with invalid names', async () => {
-    const socket = new BrowserSocket(http, 0, '\n\t \r\u200b')
+    const socket = new BrowserSocket(http, '0', '\n\t \r\u200b')
 
     try {
       await socket.close.event
@@ -77,7 +77,7 @@ describe('Server', () => {
   })
 
   it('Kicks empty messages', async () => {
-    const socket = new BrowserSocket(http, 0, '')
+    const socket = new BrowserSocket(http, '0', '')
 
     try {
       await socket.close.event
@@ -89,7 +89,7 @@ describe('Server', () => {
   })
 
   it('Kicks massive messages', async () => {
-    const socket = new BrowserSocket(http, 0, 'mo'),
+    const socket = new BrowserSocket(http, '0', 'mo'),
       client = await server.next
 
     try {

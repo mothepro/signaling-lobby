@@ -3,7 +3,7 @@ import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
 import WebSocket, { Data, AddressInfo } from 'ws'
 import { TextEncoder } from 'util'
 import { Size } from '../../util/constants'
-import { ClientID, Name, Code } from '../../src/messages'
+import { ClientID, Name, Code, LobbyID } from '../../src/messages'
 
 export const encoder = new TextEncoder
 
@@ -86,8 +86,8 @@ export default class {
     code: number
   }>()
 
-  constructor(server: Server, lobby: number, name: string) {
-    this.socket = new WebSocket(`ws://localhost:${(server.address()! as AddressInfo).port}?name=${encodeURIComponent(name)}&lobby=${lobby.toString(32)}`)
+  constructor(server: Server, lobby: LobbyID, name: Name) {
+    this.socket = new WebSocket(`ws://localhost:${(server.address()! as AddressInfo).port}?name=${encodeURIComponent(name)}&lobby=${encodeURIComponent(lobby)}`)
     this.socket.once('open', this.open.activate)
     this.socket.once('close', this.close.activate)
     this.socket.once('error', this.close.deactivate)

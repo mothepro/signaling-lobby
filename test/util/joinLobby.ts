@@ -7,7 +7,7 @@ import { Server } from 'http'
 let lobbyId = 0
 
 /** Gets a lobby that is currently unused. */
-export const nextLobby = () => lobbyId++
+export const nextLobby = () => `${lobbyId++}`
 
 /** 
  * Helper to create a browser socket and connect it to a lobby.

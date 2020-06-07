@@ -20,6 +20,8 @@ Flag | Alias | Type | Default | Description
 `key` | | `string` | None | Path to the public key to use (Only for a secure server)
 `cert` | | `string` | None | Path to the certificate to use (Only for a secure server)
 
+*By tweaking the `sync-timeout` flag this server could be used for non-p2p signaling (longstanding groups that send data through the server)*
+
 ## EC2
 
 Create a hosted zone to point to EC2 server **public** IP.

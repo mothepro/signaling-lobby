@@ -208,6 +208,33 @@ describe('Groups', () => {
     otherMessage.should.eql(Buffer.from(new Uint16Array([myId, 0xABCD, 0xEF]).buffer))
   })
 
+  it('Can broadcast in synced group', async () => {
+    const lobby = nextLobby(),
+      [mySocket, { id: myId }] = await joinLobby(http, server, 'mo', lobby),
+      [otherSocket, { id: otherId }] = await joinLobby(http, server, 'momo', lobby),
+      [guestSocket, { id: guestId }] = await joinLobby(http, server, 'mothepro', lobby)
+
+    mySocket.sendProposal(true, otherId, guestId)
+    otherSocket.sendProposal(true, myId, guestId)
+    guestSocket.sendProposal(true, myId, otherId)
+
+    await Promise.all([
+      mySocket.groupFinal.next,
+      otherSocket.groupFinal.next,
+      guestSocket.groupFinal.next,
+    ])
+
+
+    const [otherMessage, guestMessage] = await Promise.all([
+      otherSocket.buffers.next,
+      guestSocket.buffers.next,
+      mySocket.sendSyncBuffer(myId, 'hello'),
+    ])
+
+    otherMessage.should.eql({ from: myId, data: 'hello' })
+    guestMessage.should.eql({ from: myId, data: 'hello' })
+  })
+
   it('Eventually the group shall elegantly close', async () => {
     const lobby = nextLobby(),
       [mySocket, myClient] = await joinLobby(http, server, 'mo', lobby),

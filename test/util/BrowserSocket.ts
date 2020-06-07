@@ -24,7 +24,13 @@ export default class {
   readonly open = new SafeSingleEmitter
   readonly close = new SingleEmitter
   readonly message = new SafeEmitter<Data>(data => {
-    if (data instanceof Buffer)
+    if (data instanceof Buffer) {
+      if (data.byteLength > Size.SHORT) // Might be a synced buffer
+        this.buffers.activate({
+          from: data.readUInt16LE(0),
+          data: data.slice(Size.SHORT).toString(),
+        })
+
       switch (data.readUInt8(0)) {
         case Code.CLIENT_JOIN:
           if (data.byteLength > Size.CHAR + Size.SHORT)
@@ -63,6 +69,7 @@ export default class {
             })
           break
       }
+    }
   })
 
   /** Activated when a client join/leave message is received. */
@@ -83,6 +90,12 @@ export default class {
     ids: ClientID[]
     cmp: ClientID
     code: number
+  }>()
+
+  /** Activated when a buffer (after syncing) message is received. */
+  readonly buffers = new SafeEmitter<{
+    from: ClientID
+    data: string
   }>()
 
   constructor(server: Server, lobby: LobbyID, name: Name) {
@@ -107,5 +120,14 @@ export default class {
     for (let i = 0; i < ids.length; i++)
       buf.setUint16(Size.CHAR + i * Size.SHORT, ids[i], true)
     this.send(buf.buffer)
+  }
+
+  /** Helper to send a buffer after syned */
+  sendSyncBuffer(to: ClientID, data: string) {
+    const buffer = encoder.encode(data),
+      view = new DataView(new ArrayBuffer(Size.SHORT + buffer.byteLength))
+    view.setUint16(0, to, true)
+    new Uint8Array(view.buffer, Size.SHORT).set(buffer)
+    this.send(view.buffer)
   }
 }

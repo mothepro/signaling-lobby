@@ -77,7 +77,7 @@ export default class Group {
     for (const [, client] of this.clients) {
       this.bindState(client)
       this.bindProposal(client)
-      this.bindMessage(client)
+      this.bindMessage(client, initiator, ...clients)
     }
 
     logger(Level.DEBUG, initiator.id, '> proposed group to include', ...this.clients.keys())
@@ -107,17 +107,20 @@ export default class Group {
     }
   }
 
-  private async bindMessage(client: Client) {
+  private async bindMessage(client: Client, ...allMembers: Client[]) {
     try {
       for await (const { to, content } of client.message) {
-        if (to == client.id)
-          throw Error(`${client.id}> attempted sending data to themself`)
-
         if (!this.clients.has(to))
           throw Error(`${client.id}> attempted sending data to non exsistent client ${to}`)
 
-        content.setUint16(0, client.id, true) // transform the `to` into a `from`
-        this.clients.get(to)?.send(content.buffer)
+        if (to == client.id) { // broadcast to "self" means to actually broadcast all group members (excluding self)
+          for (const { id, send } of allMembers)
+            if (to != id)
+              send(content.buffer)
+        } else { // transform the `to` into a `from` and ship it to the `from` client
+          content.setUint16(0, client.id, true)
+          this.clients.get(to)?.send(content.buffer)
+        }
       }
     } catch (err) {
       client.stateChange.deactivate(err)

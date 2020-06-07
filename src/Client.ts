@@ -108,7 +108,7 @@ export default class Client {
       logger(Level.DEBUG, 'Creating lobby', this.lobby)
       Client.lobbies.set(this.lobby, new Set)
     }
-    logger(Level.DEBUG, this.id, '> joined lobby', this.lobby, 'as', this.name)
+    logger(Level.INFO, this.id, '> joined lobby', this.lobby, 'as', this.name)
     Client.lobbies.get(this.lobby)!.add(this)
 
     // Async not allowed in constructor
@@ -145,7 +145,7 @@ export default class Client {
       logErr(this.id, err)
       this.socket.terminate()
     }
-    logger(Level.DEBUG, this.id, '> will no longer be updated')
+    logger(Level.INFO, this.id, '> will no longer be updated')
     this.removeSelfFromLobby()
   }
 

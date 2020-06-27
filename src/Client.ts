@@ -106,6 +106,7 @@ export default class Client {
     // We must assign them a valid name
     if (!this.name) {
       this.name = (anonymousPrefix + nameGenerator.next().value).trim()
+      logger(Level.DEBUG, this.id, '> assigned name', this.name)
       // Inform them of their name when they are online
       filterValue(this.stateChange, State.CONNECTED)
         .then(() => this.send(yourName(this.name)))

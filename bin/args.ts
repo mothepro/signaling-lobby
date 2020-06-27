@@ -7,6 +7,7 @@ export const {
   port,
   key,
   cert,
+  'anonymous-prefix': anonymousPrefix,
   'max-length': maxLength,
   'max-size': maxSize,
   'max-connections': maxConnections,
@@ -68,6 +69,13 @@ export const {
     defaultDescription: 'A random free port',
     default: 0,
     demandOption: true,
+  })
+  .option('anonymous-prefix', {
+    alias: 'a',
+    type: 'string',
+    description: 'If set, allows clients without names to connect. This text will be prepended to the string',
+    demandOption: true,
+    default: '',
   })
   .option('key', {
     type: 'string',

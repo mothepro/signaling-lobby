@@ -4,7 +4,7 @@ import { promisify } from 'util'
 import { createServer } from 'https'
 import { createServer as createUnsecureServer } from 'http'
 import { version } from '../package.json'
-import { verbose, hostname, port, maxLength, maxSize, maxConnections, idleTimeout, syncTimeout, key, cert } from './args'
+import { verbose, hostname, port, maxLength, maxSize, maxConnections, idleTimeout, syncTimeout, key, cert, anonymousPrefix } from './args'
 import logger, { Level, setLevel, logErr } from '../util/logger'
 import createSignalingLobby from '../src/createSignalingLobby'
 const readFileAsync = promisify(readFile)
@@ -21,7 +21,7 @@ try {
       })
       : createUnsecureServer(),
     connection = await createSignalingLobby(
-      { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout },
+      { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout, anonymousPrefix },
       server.listen(port, hostname),
       version)
 

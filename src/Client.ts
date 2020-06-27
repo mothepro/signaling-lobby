@@ -1,10 +1,13 @@
 import * as WebSocket from 'ws'
-import { SafeEmitter, Emitter } from 'fancy-emitter'
+import { SafeEmitter, Emitter, filterValue } from 'fancy-emitter'
+import { foreverStrings } from '@mothepro/emojis'
 import { Proposal, getProposal, SyncBuffer, getSyncBuffer } from './incoming'
-import { clientJoin, clientLeave } from './outgoing'
+import { clientJoin, clientLeave, yourName } from './outgoing'
 import { Name, LobbyID, ClientID } from '../util/constants'
 import logger, { Level, logErr } from '../util/logger'
 import Group from './Group'
+
+const nameGenerator = foreverStrings(false)
 
 export const enum State {
   /** Client that has just successfully initiated a connection. */
@@ -76,7 +79,7 @@ export default class Client {
   readonly send = async (message: ArrayBuffer | SharedArrayBuffer) =>
     (this.state == State.CONNECTED || this.state == State.SYNCING)
     && logger(Level.TRANSFER, this.id, '<', message)
-    && new Promise(resolve => this.socket.send(message, {}, resolve))
+    && new Promise(resolve => this.socket.send(message, resolve))
 
   constructor(
     /** An ID that is unique to this client. */
@@ -90,6 +93,7 @@ export default class Client {
     /** ms to wait before to kill this client if they are not grouped. */
     private readonly idleTimeout: number,
     private readonly syncTimeout: number,
+    anonymousPrefix: string,
     /** Conver an ID to Client (Used with incoming proposals) */
     private readonly getClientWithId: (id: ClientID) => Client | void,
   ) {
@@ -98,6 +102,15 @@ export default class Client {
     socket.on('close', this.stateChange.cancel)
     socket.on('error', this.stateChange.deactivate)
     socket.on('message', this.incoming.activate)
+
+    // We must assign them a valid name
+    if (!this.name) {
+      this.name = (anonymousPrefix + nameGenerator.next().value).trim()
+      // Inform them of their name when they are online
+      filterValue(this.stateChange, State.CONNECTED)
+        .then(() => this.send(yourName(this.name)))
+        .catch(() => { }) // handled in bind state
+    }
 
     // Already opened, lets activate on the next tick to allow async listeners to be bound
     if (socket.readyState == socket.OPEN)

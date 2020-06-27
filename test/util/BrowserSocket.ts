@@ -32,6 +32,10 @@ export default class {
         })
 
       switch (data.readUInt8(0)) {
+        case Code.YOUR_NAME:
+          this.yourName.activate(data.toString('utf-8', Size.CHAR))
+          break
+        
         case Code.CLIENT_JOIN:
           if (data.byteLength > Size.CHAR + Size.SHORT)
             this.clientPresence.activate({
@@ -97,6 +101,9 @@ export default class {
     from: ClientID
     data: string
   }>()
+
+  /** Activated when the server assigns a name for the client. */
+  readonly yourName = new SafeEmitter<Name>()
 
   constructor(server: Server, lobby: LobbyID, name: Name) {
     this.socket = new WebSocket(`ws://localhost:${(server.address()! as AddressInfo).port}?name=${encodeURIComponent(name)}&lobby=${encodeURIComponent(lobby)}`)

@@ -108,3 +108,27 @@ describe('Server', () => {
     client.socket.readyState.should.equal(CLOSED)
   })
 })
+
+
+it('Assign anonymous name', async () => {
+  const http = createServer().listen(),
+    server = await createSignalingLobby({
+      maxConnections: 5,
+      maxSize: 100,
+      maxLength: 100,
+      idleTimeout: 500,
+      syncTimeout: 100,
+      anonymousPrefix: ' ',
+    }, http),
+    socket = new BrowserSocket(http, '0', '')
+  
+  await socket.open.event
+  const name = await socket.yourName.next
+
+  name.length.should.be.greaterThan(1)
+  name.length.should.be.lessThan(100)
+  socket.readyState.should.eql(OPEN)
+  server.count.should.eql(1)
+
+  http.close()
+})

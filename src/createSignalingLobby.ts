@@ -20,13 +20,14 @@ const availableId = openId(Max.SHORT)
  */
 // TODO add DoS prevention use
 export default async function (
-  { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout }:
+  { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout, anonymousPrefix }:
     {
       maxConnections: number
       maxSize: number
       maxLength: number
       idleTimeout: number
       syncTimeout: number
+      anonymousPrefix?: string,
     },
   /** The underlying HTTP(S) connection server. */
   httpServer: Server,
@@ -80,8 +81,8 @@ export default async function (
       return
     }
 
-    if (!realName) {
-      logErr('Expected a valid name must be given on initialization, got', name)
+    if (!anonymousPrefix && !realName) {
+      logErr('Expected a valid name must be given on initialization when `anonymous` is not set, got', name)
       socket.destroy()
       return
     }
@@ -95,6 +96,7 @@ export default async function (
         maxSize,
         idleTimeout,
         syncTimeout,
+        anonymousPrefix ?? '',
         (id: ClientID) => allClients.get(id))))
   })
 

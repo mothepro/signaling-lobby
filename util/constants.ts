@@ -38,4 +38,5 @@ export const enum Code {
   GROUP_REQUEST,
   GROUP_REJECT,
   GROUP_FINAL,
+  YOUR_NAME,
 }

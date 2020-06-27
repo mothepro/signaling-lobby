@@ -1,5 +1,5 @@
 import { TextEncoder } from 'util'
-import { Size, ClientID, Code } from '../util/constants'
+import { Size, ClientID, Code, Name } from '../util/constants'
 import Client from './Client'
 
 const encoder = new TextEncoder
@@ -10,6 +10,14 @@ export function clientJoin({ name, id }: Client) {
   ret.setUint8(0, Code.CLIENT_JOIN)
   ret.setUint16(Size.CHAR, id, true)
   new Uint8Array(ret.buffer, Size.CHAR + Size.SHORT).set(nameBuffer)
+  return ret.buffer
+}
+
+export function yourName(name: Name) {
+  const nameBuffer = encoder.encode(name!),
+    ret = new DataView(new ArrayBuffer(Size.CHAR + nameBuffer.byteLength))
+  ret.setUint8(0, Code.YOUR_NAME)
+  new Uint8Array(ret.buffer, Size.CHAR).set(nameBuffer)
   return ret.buffer
 }
 

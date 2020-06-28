@@ -38,12 +38,14 @@ export default class Group {
   /** Code to be sent to the clients when group is done. */
   private readonly code = Math.trunc(Math.random() * Max.INT)
 
-  private readonly ready = new SingleEmitter(
-    () => logger(Level.INFO, ...this.clients.keys(), 'have finalized a group'),
-    () => [...this.clients].map(([, { stateChange }]) => stateChange.activate(State.SYNCING)),
-    () => [...this.clients].map(([id, { send }]) =>
-      // browser doesn't know their own id, but we give it to them first as a comparator.
-      send(groupFinal(this.code, id, ...this.idsWithout(id)))))
+  private readonly ready = new SingleEmitter(() => {
+    logger(Level.INFO, ...this.clients.keys(), 'have finalized a group')
+    for (const [id, { send, stateChange }] of this.clients) {
+      stateChange.activate(State.SYNCING)
+      // Browser doesn't know their own id, but we give it to them first as a comparator.
+      send(groupFinal(this.code, id, ...this.idsWithout(id)))
+    }
+  })
 
   /** All the client IDs in this group without `ids`. */
   private idsWithout(...ids: ClientID[]) {
@@ -95,7 +97,10 @@ export default class Group {
   }
 
   private async bindProposal(client: Client) {
-    for await (const { approve, ids } of client.proposal) {
+    for await (const { approve, ids } of client.proposal) { 
+      if (!client.stateChange.isAlive)
+        return // Stop listening, this is executed if a Group has been "deleted" but not garbage collected yet.
+      
       const members = new Set(ids).add(client.id)
 
       // Only handle if group belongs to us, and only us
@@ -110,6 +115,9 @@ export default class Group {
   private async bindMessage(client: Client) {
     try {
       for await (const { to, content } of client.message) {
+        if (!client.stateChange.isAlive)
+          return // Stop listening, this is executed if a Group has been "deleted" but not garbage collected yet.
+        
         if (!this.clients.has(to))
           throw Error(`Attempted sending data to non exsistent client ${to} within ${[...this.clients.keys()]}`)
 

@@ -224,7 +224,6 @@ describe('Groups', () => {
       guestSocket.groupFinal.next,
     ])
 
-
     const [otherMessage, guestMessage] = await Promise.all([
       otherSocket.buffers.next,
       guestSocket.buffers.next,

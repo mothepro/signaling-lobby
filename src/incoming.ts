@@ -7,7 +7,7 @@ export interface Proposal {
   approve: boolean
 
   /** Other clients to include in group. */
-  ids: Set<ClientID>
+  ids: ReadonlySet<ClientID>
 }
 
 /** Data sent after a sync. */

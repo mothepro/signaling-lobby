@@ -13,6 +13,7 @@ Flag | Alias | Type | Default | Description
 `verbose` | `v` | `count` | None | Verbosity (`-vvvvv` is most verbose)
 `hostname` | `h` | `string` | localhost | The hostname to this server is running on
 `port` | `p` | `number` | A random free port | The port to host this server on
+`anonymous` | `a` | `string` | None | If set, the server will assign a name (with this as a prefix) to client's who don't include one upon connecting
 `max-length` | | `number` | `15` | The max length of a client's name
 `max-connections` | | `number` | `65534` | The max number of connections the server supports. `65534` is the max supported
 `idle-timeout` | `i` | `number` | `20` minutes | The number of milliseconds a client can be connected to the server without joining a group

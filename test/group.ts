@@ -63,7 +63,7 @@ describe('Groups', () => {
     mySocket.send(new Uint8Array([3, 1, 2]).buffer)
 
     myClient.stateChange.next.should.rejectedWith(/Expected Group Proposal/)
-    await mySocket.close.event
+    await mySocket.close
     mySocket.readyState.should.eql(CLOSED)
   })
 
@@ -247,8 +247,8 @@ describe('Groups', () => {
       otherSocket.groupFinal.next,
 
       // Sockets closed
-      mySocket.close.event,
-      otherSocket.close.event,
+      mySocket.close,
+      otherSocket.close,
     ])
 
     myClient.stateChange.isAlive.should.be.false()

@@ -22,7 +22,8 @@ describe('Lobby', () => {
     const lobby = nextLobby(),
       [socket, client] = await joinLobby(http, server, '\n\tmo\r\u200b', lobby)
 
-    socket.close.triggered.should.be.false()
+    socket.open.should.be.resolved()
+    socket.connected.should.be.true()
     socket.readyState.should.eql(OPEN)
     client.lobby!.should.eql(lobby)
     client.name!.should.eql('mo')

@@ -97,31 +97,22 @@ export default class Group {
   }
 
   private async bindProposal(client: Client) {
-    for await (const { approve, ids } of client.proposal) { 
-      if (!client.stateChange.isAlive)
-        return // Stop listening, this is executed if a Group has been "deleted" but not garbage collected yet.
-      
-      const members = new Set(ids).add(client.id)
-
+    for await (const { approve, ids } of client.proposal) {
       // Only handle if group belongs to us, and only us
-      if (members.size == this.clients.size && ![...members].filter(id => !this.clients.has(id)).length)
+      if (ids.size + 1 == this.clients.size // Same number of ids in our group (`ids` doesn't contain self)
+        && ![...ids].filter(id => !this.clients.has(id)).length) // this.clients has every one of `ids`
         if (approve)
           this.ack(client.id)
         else
-          this.ready.deactivate(new LeaveError(client.id, `${client.id} doesn't want to join ${[...members]}`))
+          this.ready.deactivate(new LeaveError(client.id, `${client.id} doesn't want to join ${[...ids]}`))
     }
   }
 
   private async bindMessage(client: Client) {
     try {
       for await (const { to, content } of client.message) {
-        if (!client.stateChange.isAlive)
-          return // Stop listening, this is executed if a Group has been "deleted" but not garbage collected yet.
-        
-        if (!this.clients.has(to))
-          throw Error(`Attempted sending data to non exsistent client ${to} within ${[...this.clients.keys()]}`)
-
-        if (to == client.id) { // broadcast to "self" means to actually broadcast all group members (excluding self)
+        // broadcast to "self" means to actually broadcast all group members (excluding self) if group is activated
+        if (to == client.id && !client.stateChange.isAlive) {
           for (const [id, { send }] of this.clients)
             if (to != id)
               send(content.buffer)

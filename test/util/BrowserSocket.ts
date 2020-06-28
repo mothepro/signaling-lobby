@@ -1,5 +1,5 @@
 import { Server } from 'http'
-import { SafeSingleEmitter, SingleEmitter, SafeEmitter } from 'fancy-emitter'
+import { SafeEmitter } from 'fancy-emitter'
 import WebSocket, { Data, AddressInfo } from 'ws'
 import { TextEncoder } from 'util'
 import { Size, ClientID, Name, LobbyID, Code } from '../../util/constants'
@@ -21,8 +21,9 @@ export default class {
 
   get readyState() { return this.socket.readyState }
 
-  readonly open = new SafeSingleEmitter
-  readonly close = new SingleEmitter
+  readonly open: Promise<void>
+  readonly close: Promise<void>
+  connected = false
   readonly message = new SafeEmitter<Data>(data => {
     if (data instanceof Buffer) {
       if (data.byteLength > Size.SHORT) // Might be a synced buffer
@@ -35,7 +36,7 @@ export default class {
         case Code.YOUR_NAME:
           this.yourName.activate(data.toString('utf-8', Size.CHAR))
           break
-        
+
         case Code.CLIENT_JOIN:
           if (data.byteLength > Size.CHAR + Size.SHORT)
             this.clientPresence.activate({
@@ -107,13 +108,17 @@ export default class {
 
   constructor(server: Server, lobby: LobbyID, name: Name) {
     this.socket = new WebSocket(`ws://localhost:${(server.address()! as AddressInfo).port}?name=${encodeURIComponent(name)}&lobby=${encodeURIComponent(lobby)}`)
-    this.socket.once('open', this.open.activate)
-    this.socket.once('close', this.close.activate)
-    this.socket.once('error', this.close.deactivate)
     this.socket.on('message', this.message.activate)
-    this.close.event.catch(err => {
-      if (err.code != 'ECONNRESET') // Swallow 'hang ups' due to server disconnection
-        throw err
+
+    this.open = new Promise(ok => {
+      this.socket.once('open', () => this.connected = true)
+      this.socket.once('open', ok)
+    })
+    this.close = new Promise((resolve, reject) => {
+      this.socket.once('close', () => this.connected = false)
+      this.socket.once('close', resolve)
+      this.socket.once('error', () => this.connected = false)
+      this.socket.once('error', reject)
     })
   }
 

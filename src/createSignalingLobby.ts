@@ -1,4 +1,4 @@
-import { SingleEmitter, Emitter, Listener } from 'fancy-emitter'
+import { Emitter, Listener } from 'fancy-emitter'
 import { Server, IncomingMessage } from 'http'
 import { Socket } from 'net'
 import { parse } from 'url'
@@ -19,7 +19,7 @@ const availableId = openId(Max.SHORT)
  * The emitter is canceled once no more clients are connecting.
  */
 // TODO add DoS prevention use
-export default async function (
+export default function (
   { maxConnections, maxSize, maxLength, idleTimeout, syncTimeout, anonymousPrefix }:
     {
       maxConnections: number
@@ -38,9 +38,6 @@ export default async function (
 ) {
   const allClients: Map<ClientID, Client> = new Map,
 
-    /** Activated when server is ready to receive connections. */
-    ready: SingleEmitter<Listener<Client>> = new SingleEmitter,
-
     /**
      * Activated when a socket successfully connectes to the server.
      * Save & remove client from list of all clients.
@@ -56,8 +53,6 @@ export default async function (
   httpServer.once('close', connection.cancel)
   httpServer.once('close', socketServer.close)
   httpServer.once('error', connection.deactivate)
-  httpServer.once('error', ready.deactivate)
-  httpServer.once('listening', () => ready.activate(connection))
   httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
     if (protocol && request.headers['sec-websocket-protocol'] != protocol) {
       logErr('Server requires the protocol', protocol,
@@ -100,8 +95,10 @@ export default async function (
         (id: ClientID) => allClients.get(id))))
   })
 
-  if (httpServer.listening)
-    return connection
-
-  return ready.event
+  return new Promise<typeof connection>((resolve, reject) => {
+    httpServer.once('error', reject)
+    httpServer.once('listening', () => resolve(connection))
+    if (httpServer.listening)
+      resolve(connection)
+  })
 }

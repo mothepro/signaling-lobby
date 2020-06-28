@@ -24,7 +24,7 @@ describe('Server', () => {
   it('Clients can connect', async () => {
     const socket = new BrowserSocket(http, '0', 'mo')
     // This happens after the server connection completes
-    await socket.open.event
+    await socket.open
     socket.readyState.should.eql(OPEN)
     server.count.should.eql(1)
   })
@@ -39,53 +39,41 @@ describe('Server', () => {
     ]
 
     // all clients must be connected
-    await Promise.all(clients.map(client => client.open.event))
+    await Promise.all(clients.map(client => client.open))
 
     // push the limit
     const overflow = new BrowserSocket(http, '5', 'overflow')
 
     // socket hang up thrown
-    overflow.close.event.should.be.rejectedWith(/socket hang up/)
-    overflow.open.triggered.should.be.false()
+    overflow.close.should.be.rejected()
+    overflow.connected.should.be.false()
     server.count.should.eql(5)
 
     // other clients stay open
-    for (const { close } of clients)
-      close.triggered.should.be.false()
+    for (const { connected } of clients)
+      connected.should.be.true()
   })
 
   it('Kicks Idlers', async () => {
     const socket = new BrowserSocket(http, '0', 'mo')
-    await socket.open.event
+    await socket.open
 
     await milliseconds(500 + 50) // some delta to allow server to close.
 
-    socket.close.triggered.should.be.true()
+    socket.connected.should.be.false()
     socket.readyState.should.eql(CLOSED)
   })
 
   it('Kicks clients with invalid names', async () => {
     const socket = new BrowserSocket(http, '0', '\n\t \r\u200b')
 
-    try {
-      await socket.close.event
-      throw 'should have thrown already'
-    } catch (err) {
-      err.should.be.instanceof(Error)
-      err.message.should.match(/socket hang up/)
-    }
+    socket.close.should.be.rejected()
   })
 
   it('Kicks empty messages', async () => {
     const socket = new BrowserSocket(http, '0', '')
 
-    try {
-      await socket.close.event
-      throw 'should have thrown already'
-    } catch (err) {
-      err.should.be.instanceof(Error)
-      err.message.should.match(/socket hang up/)
-    }
+    socket.close.should.be.rejected()
   })
 
   it('Kicks massive messages', async () => {
@@ -94,7 +82,7 @@ describe('Server', () => {
 
     try {
       await filterValue(client.stateChange, State.CONNECTED)
-      await socket.open.event
+      await socket.open
       socket.send(new ArrayBuffer(1000))
 
       await client.stateChange.next
@@ -104,7 +92,7 @@ describe('Server', () => {
       err.message.should.match(/attempted to send 1000 bytes/)
     }
 
-    await socket.close.event
+    await socket.close
     client.socket.readyState.should.equal(CLOSED)
   })
 })
@@ -122,7 +110,7 @@ it('Assign anonymous name', async () => {
     }, http),
     socket = new BrowserSocket(http, '0', '')
   
-  await socket.open.event
+  await socket.open
   const name = await socket.yourName.next
 
   name.length.should.be.greaterThan(1)

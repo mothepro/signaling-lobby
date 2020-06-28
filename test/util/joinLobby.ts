@@ -23,7 +23,7 @@ export default async function (http: Server, server: Listener<Client>, name: Nam
   // wait for readiness on client and server side
   await Promise.all([
     filterValue(client.stateChange, State.CONNECTED),
-    socket.open.event,
+    socket.open,
   ])
 
   return [socket, client] as const

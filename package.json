@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@mothepro/emojis": "^1.2.2",
-    "fancy-emitter": "^1.5.1",
+    "fancy-emitter": "^2.0.0",
     "ws": "^7.2.3",
     "yargs": "^15.3.1"
   }

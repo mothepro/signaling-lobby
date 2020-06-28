@@ -65,8 +65,8 @@ export default class Group {
           client.send(groupFinal(this.code, id, ...this.idsWithout(id)))
         }
         Group.groups.delete(Group.hashIds(...this.clients.keys()))
-      } else
-        logger(Level.DEBUG, 'Can not finalize group of', ...this.clients.keys(), 'since it is already', this.groupState)
+      } //else
+        //logger(Level.DEBUG, 'Can not finalize group of', ...this.clients.keys(), 'since it is already', this.groupState)
     } else
       for (const [id, { send }] of this.clients)
         if (id != ackerId)
@@ -83,8 +83,8 @@ export default class Group {
         if (id != other) // ackr will go first & browser doesn't know their own id
           send(groupLeave(id, ...this.idsWithout(other, id)))
       Group.groups.delete(Group.hashIds(...this.clients.keys()))
-    } else
-      logger(Level.DEBUG, 'Can not close group of', ...this.clients.keys(), 'since it is already', this.groupState)
+    } //else
+      //logger(Level.DEBUG, 'Can not close group of', ...this.clients.keys(), 'since it is already', this.groupState)
   }
 
   /** Create and clean up a group once it is no longer needed. */

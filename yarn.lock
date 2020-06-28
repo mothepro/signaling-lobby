@@ -30,10 +30,10 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@mothepro/emojis@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@mothepro/emojis/-/emojis-1.1.1.tgz#f749ce812c0738ca766275facaf604c8953ac265"
-  integrity sha512-YBQjcSS5XPGA62ckyuZr0pyhFdAqrB+DGPQSBjRhmbfK1ffIszsWUK0ArMHV+4iijtmdaRduZK43YV3WzY1zXg==
+"@mothepro/emojis@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@mothepro/emojis/-/emojis-1.2.2.tgz#dbc34c7f8a5d1d8a7f6f49872fb658489ee92903"
+  integrity sha512-btKcXwReWimPOUKUUXTFwwPAP7/aZ5tzsrgZdZSIylHQ2tHtbHs2jMES5dQmWBI/kCu2o6oslQVupTNE0dR0pA==
 
 "@samverschueren/stream-to-observable@^0.3.0":
   version "0.3.0"

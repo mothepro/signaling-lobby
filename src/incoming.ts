@@ -26,7 +26,10 @@ function dataToView(input: Data, type: string, assert: (view: DataView) => boole
       return data
   }
 
-  throw TypeError(`Expected ${type} but got '${input}'`)
+  throw TypeError(`Expected ${type} but got '${input}' ${input instanceof ArrayBuffer
+    ? input.byteLength + ' bytes: 0x'
+      + [...new Uint8Array(input)].map(byte => byte.toString(16).padStart(2, '0').toUpperCase()).join(' 0x')
+    : ''}`.trim())
 }
 
 export function getProposal(input: Data): Proposal {

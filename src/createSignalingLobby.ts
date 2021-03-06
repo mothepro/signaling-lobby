@@ -1,4 +1,4 @@
-import { Emitter, Listener } from 'fancy-emitter'
+import { Emitter } from 'fancy-emitter'
 import { Server, IncomingMessage } from 'http'
 import { Socket } from 'net'
 import { parse } from 'url'
